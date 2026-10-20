@@ -21,6 +21,15 @@
   <br><span class="sidenote">完整目标与边界见 <a href="MISSION.md">MISSION.md</a>。</span>
 </div>
 
+<h2>完整教程（推荐先读这一份）</h2>
+
+<div class="index-grid">
+  <div class="index-card">
+    <a href="dlms-security-complete-guide.html">DLMS/COSEM 安全完全教程 · 从零基础到报文级对接</a>
+    <p>一份页面收齐：算法逐个讲（AES/GCM/KW/SHA/KDF/ECC/ECDH/ECDSA/证书）、Suite 0/1/2 全表、蓝皮书四个安全接口类的每个属性与方法、AARQ/AARE 与加密报文的逐字节解析、LLS/HLS 七种 mechanism、密钥协商/传输/轮换、配置清单与 12 个互操作陷阱。含可复算的 hex 与交叉验证台账。</p>
+  </div>
+</div>
+
 <h2>课程（按顺序做）</h2>
 
 <div class="index-grid">
@@ -48,6 +57,10 @@
     <a href="lessons/0006-security-setup-object-in-practice.html">第 6 课 · Security setup 实操：读哪几个属性，调哪几个方法</a>
     <p>把前五课落到设备对象上。OBIS 与"一个 AA 一个"、属性 2 <code>security_policy</code> 位图与属性 3 <code>security_suite</code> 枚举、方法 1–8，以及 <code>security_activate</code> 为何只能加强不能削弱。含对接新设备的排障清单。约 16 分钟。</p>
   </div>
+  <div class="index-card">
+    <a href="lessons/0007-crypto-symmetric-deep.html">第 7 课 · 对称加密与哈希：每个算法的输入与输出</a>
+    <p>AES 与工作模式、GCM 的五参数/两输出、GMAC、AES-KW、SHA-256/384、NIST KDF 的公式与规范向量；配 EBC/CTR 对比图、Table 48 三条报文对照、可复算的 KW 例子。约 45 分钟（可分两次）。</p>
+  </div>
 </div>
 
 <h2>参考文档（回头查，不用顺序读）</h2>
@@ -64,6 +77,10 @@
   <div class="index-card">
     <a href="assets/verify-dlms-gcm.py">对拍脚本 · verify-dlms-gcm.py</a>
     <p>用普通 AES-GCM 原语复现规范印着的字节：Table 48 的三条报文、Annex C.1 的 KDF、C.2/C.3 四个方向的派生密钥，以及 Table 51 的两条 HLS GMAC 认证值——共 <b>10 组</b>，全部自动比对。改几个常量就能验你自己的实现。</p>
+  </div>
+  <div class="index-card">
+    <a href="AUDIT-2026-10-20.md">教程审核报告 · 2026-10-20</a>
+    <p>规范逐条对照 + 测试向量复算 + 报文回读 + 旧课一致性扫描。含 1 个严重编码错误的修复记录（<code>key_transfer</code> 的 structure 缺元素计数），以及仍需实测的规范留白点。</p>
   </div>
   <div class="index-card">
     <b>↓ 计划中 · 术语表（GLOSSARY）</b>
@@ -90,7 +107,7 @@
 
 <div class="ask-teacher">
   <strong>想换方向？</strong>
-  六课已覆盖从坐标系（套件 vs 策略 vs 材料）到设备对象（Security setup）的完整链路。
+  完整教程已覆盖从坐标系（套件 vs 策略 vs 材料）到设备对象、报文字节、认证与密钥的全链路；七节分课适合按主题练手。
   如果接下来真正卡住你的是抓包、是某型号表计的配置、还是代码里的某段实现，直接说——课程顺序为你让路，但目标文档会同步更新。
 </div>
 

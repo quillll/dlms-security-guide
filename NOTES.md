@@ -26,10 +26,27 @@
 - **已核实（原疑点已解决）**：Security setup 实例 OBIS 为 `0-0:43.0.e.255`（IC 64），Invocation counter 实例为 `0-b:43.1.e.255`（IC = Data，旧称 frame counter object；B = 通信通道，E 与对应 Security setup 的 E 相同）——出处 `blue-book-v2\ai\ch6\markdown\ch6-6-2-abstract-cosem-objects.md` §6.2.36, p.656。两者已写入 `reference/security-suites.html` §6 与第 6 课。之前搜不到是因为 OBIS 在这份转换稿里是"按列拆开"的表格（A/B/C/D/E/F 各一格），不是连写的字符串。
 - **用户偏好的实现语言未知**（本地同时有 C#、Java、C、Rust）。第一次做代码级练习前先问。
 - 绿皮书 §9.2 文本中**没有**"从主密钥派生 EK/AK"的公式（子代理逐节确认）。若后续在别处（蓝皮书 Security setup / 某客户规范）看到该做法，需明确标注依据来源，避免把实现惯例当成规范要求。
-- 证书签名格式存在一处**规范内部未解决的冲突**：§9.2.3.4.5 要求 ECDSA 签名用 plain format（R ‖ S 定长），而附录 B 的证书示例中 signatureValue 是 DER SEQUENCE of two INTEGERs。第 4 课已上线，但**这一冲突尚未讲**（第 4 课聚焦认证机制与 GMAC，未展开证书签名格式）——留给后续"数字签名与证书"课。
+- **（2026-10-20 更正）ECDSA 的 plain 与 DER 不是规范冲突，而是两层编码**：§9.2.3.4.5 要求 DLMS 的报文/COSEM 数据签名用 plain `R‖S`；X.509 证书内部的 `signatureValue` 按证书标准用 DER。Table 52 的 64 字节就是 plain，用 OpenSSL/cryptography 验签前要先转 DER。此轮已用 Table 52 的两条签名 + P-256 公钥实测通过，并写入完整教程 §7.7.1。
 - **（2026-10-07 新增）HLS GMAC 的 IV 构造规范未明写**：Table 50 只给 f 的输出形式 `SC ‖ IC ‖ T`，**不说** IC 取自哪一端、IV 怎么拼、IC 何时递增。已从 Table 51 两条向量**反推**并枚举验证：**IV 用"算这一趟的那一方"（本端）的 `Sys-T ‖ IC`**（客户端算 f(StoC) 用客户端 SysT‖IC；服务端算 f(CtoS) 用服务端 SysT‖IC）。第 4 课已明确标注"反推、非规范明文"，并提示 Gurux 的 `IncreaseInvocationCounterForGMacAuthentication` 默认 true 是实现侧变量。**对接真实设备必须实测。**
 
 ## 已交付
+
+- **（2026-10-20）审核报告 `AUDIT-2026-10-20.md` + 关键修复**：
+  - **严重**：`key_transfer` 的 A-XDR `structure` 少了元素计数（`02` → 应为 `02 02`），会让设备把 `16` 当元素个数、参数整体错位。已修正教程 3 处示例与 `verify-frames.py`；脚本构造/回读通过。
+  - **中等**：Len 语义按三族分开（C8/C9 从 SC 起算；DB/DC 无总 Len；DD 逐字段）；第 6 课“AA 与 Security setup 一一对应”改为“引用关系、可共享”；第 4 课 HLS “七种”改六种；第 7 课 `0x3A` 误读修正；第 1 课 policy 示例改 `0x6C`。
+  - 保留的规范留白：GMAC 的 IC 递增、general-signing 的签名覆盖范围、`import_certificate` 正文的 CSR 笔误、Gurux Suite 2 截 16 B、无真机抓包。审核报告 §5 列明。
+  - **审核后完善**：顶部加四条阅读路线；第 3 章加 X.509 v3 结构与 DER/PEM 坑；第 8 章加 C(2e,0s) 时序、`key_agreement` 请求布局（`09 81 80`）与 `build_key_data()`；打印样式隐藏交互输入区。
+
+- **（2026-10-20）新增单页完整教程 `dlms-security-complete-guide.html`**（约 1900 行）：
+  - 10 章：五个旋钮 / 对称算法 / 非对称算法 / Suite 全表 / 蓝皮书接口类逐属性方法 / 报文解析 / LLS+HLS 七机制 / 密钥协商传输轮换 / 端到端与排障 / 自测与交叉验证台账。
+  - 关键修正：**DLMS 协商报文里的公钥是裸 `X‖Y`（P-256 64 B、P-384 96 B），不是 `04‖X‖Y`（65/97 B）**——Annex C 表注明确写 `FE2OS(x)‖FE2OS(y)`；已写入第 3 章。
+  - 另建 `lessons/0007-crypto-symmetric-deep.html`（对称算法更细版），`index.html` 已加“完整教程”入口与第 7 课卡片。
+  - 新增 `assets/verify-frames.py`：构造/回读 LLS、HLS-GMAC 的 AARQ/AARE、GET Security setup、ACTION key_transfer + AES-KW 解包断言。
+  - **注意 security policy 位图**：0x24 = 请求认证+响应认证；0x6C = 请求/响应认证+加密；0x3C = 请求认证+加密+签名、响应仅认证（此轮曾写错并已修正）。
+  - **注意 tag 长度**：PyCryptodome 用 `mac_len=12` 才能解密 DLMS 的 12 B tag；`cryptography` 的 AESGCM 只支持 16 B。
+  - **Table 52（HLS-ECDSA）两条签名已实测验签通过**：64 B 是 plain `R‖S`，OpenSSL/cryptography 验签前需转 DER；已写入教程 §7.7.1，并加入 `verify-frames.py` 第 6 部分。
+  - 教程嵌入两个交互组件：SC 字节解码器（第 2 章）、报文拆分器（第 6 章），复用 `assets/sc-decoder.js` / `frame-splitter.js`。
+  - 校验：`check-workspace.py` 11 个 HTML 全通过；`verify-dlms-gcm.py` 10 组向量全 ✓；`verify-frames.py` 全自洽 + ECDSA 验签通过。
 
 - **第 4 / 5 / 6 课已完成并实测通过**（2026-10-07，本轮）：
   - **第 4 课 `lessons/0004-association-authentication-hls-gmac.html`**：三种认证等级（no security / LLS / HLS）、四趟 HLS（Pass1 CtoS in AARQ、Pass2 StoC in AARE、Pass3 f(StoC)、Pass4 f(CtoS)）、Table 50 七种 mechanism（含 3/4 不推荐的原文脚注）、Table 83 的 mechanism_id、AARQ/AARE 的 `calling-AP-title`/`calling-AE-qualifier`。

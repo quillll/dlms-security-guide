@@ -36,7 +36,7 @@
   <thead><tr><th>旋钮</th><th>规范里的名字</th><th>它回答的问题</th><th>取值长什么样</th></tr></thead>
   <tbody>
     <tr><td><b>①算法组合</b></td><td>security suite</td><td>这段连接<b>能用</b>哪些算法、密钥多长</td><td><code>0</code> / <code>1</code> / <code>2</code></td></tr>
-    <tr><td>②保护要求</td><td>security policy（+ access rights）</td><td>报文<b>必须</b>被怎样保护，否则拒绝</td><td>一个字节的位图，如 <code>0x30</code>；<code>0</code> = 不要求保护</td></tr>
+    <tr><td>②保护要求</td><td>security policy（+ access rights）</td><td>报文<b>必须</b>被怎样保护，否则拒绝</td><td>一个字节的位图，如 <code>0x6C</code>；<code>0</code> = 不要求保护</td></tr>
     <tr><td>③密钥材料</td><td>security material</td><td>用<b>哪把</b>密钥、哪个证书、哪个计数器</td><td>EK / AK / KEK / 证书 / IC…</td></tr>
   </tbody>
 </table>

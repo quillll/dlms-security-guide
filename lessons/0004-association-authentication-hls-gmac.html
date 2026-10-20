@@ -102,7 +102,7 @@ HLS 是<b>双向</b>的——双方都要成功验证对方，AA 才建立（X.8
 
 <h2><span class="num">3</span>七个 mechanism：同一套四趟，换的是 f() 怎么算</h2>
 
-<p>四趟的<b>流程</b>固定，变的是处理挑战的函数 <code>f</code>。§9.2.7.4 <b>Table 50</b> 给出全部七种，名字由 §9.4.2.2.3 的 <b>Table 83</b> 定义：</p>
+<p>四趟的<b>流程</b>固定，变的是处理挑战的函数 <code>f</code>。§9.2.7.4 <b>Table 50</b> 给出 HLS 的全部六种（mechanism 2–7），名字由 §9.4.2.2.3 的 <b>Table 83</b> 定义：</p>
 
 <div class="table-scroll">
 <table>
@@ -289,7 +289,7 @@ python assets\verify-dlms-gcm.py</code></pre>
 <div class="callout quote">
   <span class="label">首选一手来源</span>
   <p>① <b>§9.2.2.2.2</b>（p.205–207）——三种认证等级与四趟 HLS 的定义（<code>ch9-9-2-…md</code>）；<br>
-  ② <b>§9.2.7.4 Table 50 / Table 51</b>（p.260–261）——七种 mechanism 的计算式，以及本课复算用的 GMAC 测试向量；<br>
+  ② <b>§9.2.7.4 Table 50 / Table 51</b>（p.260–261）——六种 HLS mechanism 的计算式，以及本课复算用的 GMAC 测试向量；<br>
   ③ <b>§9.4.2.2.3 Table 83</b>（p.313）——mechanism_id 0…7 的正式名字；<br>
   ④ <b>§9.4.4.1</b>——<code>calling-AP-title</code> / <code>calling-AE-qualifier</code> 等字段的用途。</p>
 </div>

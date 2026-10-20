@@ -31,10 +31,10 @@
   <b>前者是"要求"，后者是"能力"</b>——两者是独立的旋钮（这正是第 1 课立下的坐标系在设备上的落点）。</p>
 </div>
 
-<h2><span class="num">1</span>先找到它：OBIS 与"一个 AA 一个"</h2>
+<h2><span class="num">1</span>先找到它：OBIS 与"每个 AA 引用一个"</h2>
 
 <p>蓝皮书 §6.2.36（p.656）规定：<i>“For each Association object, there is one Security setup object managing security within that AA.”</i>
-——<b>Association 对象有几个，Security setup 就有几个</b>，一一对应。它的 OBIS 用 A/B/C/D/E/F 六段表示（转换稿里是按列拆开的表格，不是连写字符串）：</p>
+——<b>每个 Association 对象引用一个 Security setup 来管理该 AA 的安全</b>。注意这是“引用关系”，不是“一一对应”：不同 AA <b>可以共享</b>同一个 Security setup，也可以各用各的（Table 28 注 1）。它的 OBIS 用 A/B/C/D/E/F 六段表示（转换稿里是按列拆开的表格，不是连写字符串）：</p>
 
 <div class="table-scroll">
 <table>
@@ -51,7 +51,7 @@
 <p>读出三件事：</p>
 <ul>
   <li><b>C 段 = 43</b> 标识"安全相关对象"这一类（6.2.36 列在 value group 43 下）。</li>
-  <li><b>E 段 = e</b> 是实例编号，对应第几个 Association；规范要求 <i>“The value in value group E shall be the same as in the logical name of the corresponding Security setup object.”</i>
+  <li><b>E 段 = e</b> 是实例编号（由设备配置决定，不是“第几个 AA”的固定映射）；规范要求 <i>“The value in value group E shall be the same as in the logical name of the corresponding Security setup object.”</i>
   ——即 <b>Invocation counter 的 E 段与它对应的 Security setup 必须一致</b>，这是配对键。</li>
   <li><b>Invocation counter 是 Data 类的对象</b>（不是独立类），B 段标识<b>通信通道</b>——<i>“The same client may use different communication channels e.g. a remote port and a local port. The invocation counter on the different channels may be different.”</i>
   <b>所以同一个客户端走远程口和本地口，计数器是分开的。</b>这是排查"IC 对不上导致 tag 校验失败"的关键线索。</li>
