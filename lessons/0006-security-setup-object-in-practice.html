@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 6 课 · Security setup 实操：读哪几个属性，调哪几个方法</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>第 6 课</span><span class="sep">·</span>
+  <span>约 16 分钟</span><span class="sep">·</span>
+  <span>前置：第 1、5 课</span><span class="sep">·</span>
+  <span>产出：能定位安全配置所在的对象，能读出策略/套件并解释其含义</span>
+</p>
+
+<h1>Security setup 实操：读哪几个属性，调哪几个方法</h1>
+
+<div class="mission-line">
+  <b>为什么学这个：</b>这是把前五课"落到设备上"的最后一公里。
+  你对接真实表计时，第一个要 read 的对象不是数据点，而是 <b>Security setup</b>——
+  它决定了当前 AA 用哪个套件、要求什么保护。<b>不会读这三个属性，就无法判断一台表到底安不安全。</b>
+</div>
+
+<div class="callout key">
+  <span class="label">本课唯一要带走的一句话</span>
+  <p><b>Security setup 是"每个 Association 一个"的对象</b>（class_id = 64，OBIS <code>0-0:43.0.e.255</code>），
+  它用<b>属性 2 <code>security_policy</code></b> 声明"对请求/响应各要求哪种保护"、
+  用<b>属性 3 <code>security_suite</code></b> 声明"允许用哪套算法"。
+  <b>前者是"要求"，后者是"能力"</b>——两者是独立的旋钮（这正是第 1 课立下的坐标系在设备上的落点）。</p>
+</div>
+
+<h2><span class="num">1</span>先找到它：OBIS 与"一个 AA 一个"</h2>
+
+<p>蓝皮书 §6.2.36（p.656）规定：<i>“For each Association object, there is one Security setup object managing security within that AA.”</i>
+——<b>Association 对象有几个，Security setup 就有几个</b>，一一对应。它的 OBIS 用 A/B/C/D/E/F 六段表示（转换稿里是按列拆开的表格，不是连写字符串）：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>§6.2.36（p.656）· 安全相关对象的 OBIS</caption>
+  <thead><tr><th>对象</th><th>IC</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr></thead>
+  <tbody>
+    <tr><td>Security setup</td><td>64</td><td>0</td><td>0</td><td><b>43</b></td><td>0</td><td><b>e</b></td><td>255</td></tr>
+    <tr><td>Attestation</td><td>170</td><td>0</td><td>b</td><td>43</td><td>3</td><td>e</td><td>255</td></tr>
+    <tr><td>Invocation counter</td><td>Data</td><td>0</td><td>b</td><td>43</td><td>1</td><td>e</td><td>255</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>读出三件事：</p>
+<ul>
+  <li><b>C 段 = 43</b> 标识"安全相关对象"这一类（6.2.36 列在 value group 43 下）。</li>
+  <li><b>E 段 = e</b> 是实例编号，对应第几个 Association；规范要求 <i>“The value in value group E shall be the same as in the logical name of the corresponding Security setup object.”</i>
+  ——即 <b>Invocation counter 的 E 段与它对应的 Security setup 必须一致</b>，这是配对键。</li>
+  <li><b>Invocation counter 是 Data 类的对象</b>（不是独立类），B 段标识<b>通信通道</b>——<i>“The same client may use different communication channels e.g. a remote port and a local port. The invocation counter on the different channels may be different.”</i>
+  <b>所以同一个客户端走远程口和本地口，计数器是分开的。</b>这是排查"IC 对不上导致 tag 校验失败"的关键线索。</li>
+</ul>
+
+<div class="callout warn">
+  <span class="label">常见误判（我先前的踩坑）</span>
+  <p>这两条 OBIS 在转换稿里<b>搜不到连写字符串</b>（如 <code>0-0:43.0.e.255</code>），因为它们以"六列各一格"的表格形式存在。
+  用文字搜索会误以为规范没规定——实际规定得很明确。<b>查 OBIS 时要按列读表格，不要只搜冒号格式的字符串。</b></p>
+</div>
+
+<h2><span class="num">2</span>属性 1–6：一张表读全</h2>
+
+<div class="table-scroll">
+<table>
+  <caption>§4.4.7.1（蓝皮书 p.133）· Security setup, class_id = 64, version = 1</caption>
+  <thead><tr><th>#</th><th>属性</th><th>类型</th><th>读它你能知道什么</th><th>Short name</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><code>logical_name</code> (static)</td><td>octet-string</td><td>实例的 OBIS</td><td><code>x</code></td></tr>
+    <tr><td>2</td><td><b><code>security_policy</code></b> (static)</td><td>enum</td><td><b>对请求/响应各要求认证/加密/签名（位图）</b></td><td><code>x + 0x08</code></td></tr>
+    <tr><td>3</td><td><b><code>security_suite</code></b> (static)</td><td>enum</td><td><b>允许用哪套算法（0 / 1 / 2）</b></td><td><code>x + 0x10</code></td></tr>
+    <tr><td>4</td><td><code>client_system_title</code> (dyn.)</td><td>octet-string</td><td>本 AA 的客户端 system title</td><td><code>x + 0x18</code></td></tr>
+    <tr><td>5</td><td><code>server_system_title</code> (static)</td><td>octet-string</td><td>服务端 system title（<b>只读</b>）</td><td><code>x + 0x20</code></td></tr>
+    <tr><td>6</td><td><code>certificates</code> (dyn.)</td><td>array</td><td>本机存有哪些 X.509 v3 证书</td><td><code>x + 0x28</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>属性 2 与 3 是本课的核心</b>，逐个讲。</p>
+
+<h3>属性 2 · security_policy：8 个 bit，请求响应各一半</h3>
+
+<p>§4.4.7.2.2 规定它是一个 enum，按无符号数解释时每个 bit 的含义如下（<i>“It applies independently for requests and responses.”</i>）：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>§4.4.7.2.2（p.133）· security_policy 位图</caption>
+  <thead><tr><th>bit</th><th>含义</th><th></th><th>bit</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>未使用，必须置 0</td><td></td><td>4</td><td><b>digitally signed request</b>（请求签名）</td></tr>
+    <tr><td>1</td><td>未使用，必须置 0</td><td></td><td>5</td><td><b>authenticated response</b>（响应认证）</td></tr>
+    <tr><td>2</td><td><b>authenticated request</b>（请求认证）</td><td></td><td>6</td><td><b>encrypted response</b>（响应加密）</td></tr>
+    <tr><td>3</td><td><b>encrypted request</b>（请求加密）</td><td></td><td>7</td><td><b>digitally signed response</b>（响应签名）</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>所以 bit 2–4 管"客户端发出去的"（request），bit 5–7 管"服务端回的"（response）。举几个值：</p>
+
+<pre><code>0x00 = 0   → 不要求任何保护（= version 0 的行为，见下）
+0x04 = bit2 → 仅要求请求被认证
+0x0C = bit2+bit3 → 请求要认证 + 加密
+0x1C = bit2+3+4 → 请求要认证 + 加密 + 签名
+0x44 = bit2+6 → 请求认证、响应加密（不对称配置）</code></pre>
+
+<div class="callout warn">
+  <span class="label">一句容易读漏的原文</span>
+  <p>§4.4.7.2.2 最后一行：<i>“The access rights may require stronger protection than what is required by the security policy.”</i>
+  ——<b>访问权限（access rights）可能比安全策略要求更高</b>。也就是说，即使 policy 说"不要求加密"，
+  某个对象的访问权限仍可能要求加密。<b>最终生效的保护是"策略"与"访问权限"里更强的那一个。</b>
+  排障时只读 policy 是不够的——这解释了"policy 看着没要求加密，报文却加密了"的现象。</p>
+</div>
+
+<h3>属性 3 · security_suite：只有 0/1/2 有定义</h3>
+
+<p>§4.4.7.2.3 逐字：</p>
+
+<pre><code>(0) AES-GCM-128 认证加密 + AES-128 key wrap
+(1) AES-GCM-128 认证加密、ECDSA P-256 签名、ECDH P-256 协商、
+    SHA-256、V.44 压缩、AES-128 key wrap
+(2) AES-GCM-256 认证加密、ECDSA P-384 签名、ECDH P-384 协商、
+    SHA-384、V.44 压缩、AES-256 key wrap
+(3) … (15) reserved</code></pre>
+
+<p>这就是第 1 课 <b>Table 27</b> 在设备侧的回声——套件编号的取值域在这里被固定为 0/1/2，其余保留。
+<b>注意 (0) 里没有非对称算法、没有 V.44 压缩</b>：这正是"Suite 0 只做对称"的落地形式。</p>
+
+<div class="callout trap">
+  <span class="label">version 0 与 version 1 的差别（容易踩）</span>
+  <p>Security setup 的 <b>version = 1</b> 才有完整的属性 2–6 与方法 1–8。<b>version 0 的对象要弱得多</b>：
+  §4.4.7.2.2 的 NOTE 原文：<i>“With this, the value (0) means that no cryptographic protection is required, as in version 0 of the ‘Security setup’ IC.”</i>
+  ——即 version 0 只有 <code>security_policy = 0</code> 这一种状态。<br>
+  <b>实操含义：</b>对接老表时，先读 version 与 <code>security_suite</code>。
+  如果 <code>security_suite</code> 只能读到 0，那它很可能只能做 Suite 0——<b>不要指望在上面配 Suite 1/2 的证书和签名</b>。</p>
+</div>
+
+<h2><span class="num">3</span>方法 1–8：能对设备做的八个动作</h2>
+
+<div class="table-scroll">
+<table>
+  <caption>§4.4.7.1（p.133）· Security setup 的 specific methods（全部为 optional，<code>o</code>）</caption>
+  <thead><tr><th>#</th><th>方法</th><th>做什么</th><th>Short name</th><th>相关课</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><code>security_activate (data)</code></td><td><b>强化</b>安全策略（只能加强，不能削弱）</td><td><code>x+0x30</code></td><td>本课 §4</td></tr>
+    <tr><td>2</td><td><code>key_transfer (data)</code></td><td>用 KEK 包装后传送对称密钥</td><td><code>x+0x38</code></td><td>第 5 课</td></tr>
+    <tr><td>3</td><td><code>key_agreement (data)</code></td><td>ECDH 协商对称密钥（C(2e,0s)）</td><td><code>x+0x48</code></td><td>第 3 课</td></tr>
+    <tr><td>4</td><td><code>generate_key_pair (data)</code></td><td>在设备内生成非对称密钥对</td><td><code>x+0x50</code></td><td>—</td></tr>
+    <tr><td>5</td><td><code>generate_certificate_request (data)</code></td><td>生成证书请求（CSR，交给 CA 签发）</td><td><code>x+0x58</code></td><td>—</td></tr>
+    <tr><td>6</td><td><code>import_certificate (data)</code></td><td>导入证书</td><td><code>x+0x60</code></td><td>—</td></tr>
+    <tr><td>7</td><td><code>export_certificate (data)</code></td><td>导出证书</td><td><code>x+0x68</code></td><td>—</td></tr>
+    <tr><td>8</td><td><code>remove_certificate (data)</code></td><td>删除证书</td><td><code>x+0x70</code></td><td>—</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>读法：</b>方法 2、3 是第 5 课讲的"密钥从哪来"的两条路（包装 / 协商）；
+方法 4–8 是<b>设备内自建 PKI 流程</b>——先在表里生成密钥对、再生成 CSR、拿去 CA 签完导入。这说明
+<b>非对称密钥可以在表内生成，私钥不必离开设备</b>，这是比"外部生成再导入"更安全的做法。</p>
+
+<h2><span class="num">4</span>security_activate：为什么只能加强、不能削弱</h2>
+
+<p>这是本课最值得记住的方法行为。§4.4.7.3.1（p.135）三段话，每句都是设计意图：</p>
+
+<pre><code>data ::= enum, as specified at the security_policy attribute.</code></pre>
+
+<ul>
+  <li><b>它接收的就是 security_policy 那种 enum</b>（同一套位图）。</li>
+  <li><i>“Strengthening the security policy means that another kind of protection is added.”</i>
+  ——"强化"的定义是<b>新增一类保护</b>（认证 / 加密 / 签名 三种之一）。</li>
+  <li><i>“Once a kind of protection is added, it cannot be removed. If the method is invoked with a value indicating a security policy that is weaker than the value of the security_policy attribute, the method invocation fails.”</i>
+  ——<b>已加的保护不能撤；调用一个更弱的值直接失败。</b></li>
+  <li><i>“The new security policy applies as soon as the method invocation has been confirmed with success.”</i>
+  ——<b>成功确认的那一刻立即生效</b>（与第 5 课 <code>key_transfer</code> 的"立即生效"同构）。</li>
+</ul>
+
+<div class="callout key">
+  <span class="label">这条规则为什么这样设计</span>
+  <p>安全配置是<b>单向棘轮</b>：只能往更安全的方向走。<br>
+  否则一台已被攻陷的表可以被悄悄"降级"到无保护状态，然后攻击者就能明文操作它——
+  这会让前面所有密钥与认证工作归零。<b>"不可降级"本身就是一道防线。</b><br><br>
+  <b>实操含义：</b>如果你<b>误</b>把策略调得过高（比如要求签名但表不支持），<b>不能靠"调低回去"补救</b>——
+  必须换用更高级的凭据完成建链，或走厂商的维护流程。<b>调之前要看清楚。</b></p>
+</div>
+
+<h2><span class="num">5</span>对接清单：新接手一台表，按顺序读什么</h2>
+
+<p>把前五课压成一份可执行的排障顺序：</p>
+
+<ol>
+  <li><b>读 <code>security_suite</code>（属性 3）</b> → 知道它支持哪套算法（只读到 0 就别指望 Suite 1/2）。</li>
+  <li><b>读 <code>security_policy</code>（属性 2）</b> → 知道当前要求哪些保护（注意是"要求"，不是"实际"）。</li>
+  <li><b>读 <code>client_system_title</code> / <code>server_system_title</code>（属性 4/5）</b> → 确认身份标识，判断与抓包里的 IV 前 8 字节是否一致。</li>
+  <li><b>读 <code>certificates</code>（属性 6）</b> → 若走 Suite 1/2，看证书是否就位、有没有过期。</li>
+  <li><b>读对应的 Invocation counter 对象</b> → 拿当前 IC；注意<b>按通道区分</b>（B 段不同）。</li>
+  <li><b>建链时看 <code>AARQ</code></b> → 用了哪种认证机制（LLS / HLS mechanism 几），见第 4 课。</li>
+</ol>
+
+<div class="callout trap">
+  <span class="label">排障三连（按发生频率排序）</span>
+  <p><b>① tag 校验失败</b> → 先核对 IC（尤其是不是取错了通道的计数器）。<br>
+  <b>② 密钥协商成功但对方解密失败</b> → KDF 的 system title 顺序写反了（第 3 课）。<br>
+  <b>③ "policy 没要求加密，报文却加密了"</b> → 访问权限比 policy 更严（本课 §2 那条原文）。</p>
+</div>
+
+<h2><span class="num">6</span>练一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q1 · 一台表读出的 <code>security_policy = 0x0C</code>，意思是？</p>
+  <ul class="opts">
+    <li data-correct="true">请求要被认证并加密</li>
+    <li>响应要被认证并加密</li>
+    <li>请求与响应都被认证并加密</li>
+    <li>不要求任何保护</li>
+  </ul>
+  <p class="feedback"><b>解析：</b><code>0x0C</code> = bit2 + bit3。§4.4.7.2.2 里 bit2 = authenticated request、bit3 = encrypted request，而 bit5/6 才是 response 一侧。所以 <code>0x0C</code> 只管<b>请求</b>方向。要响应也保护，得把 bit5/6 也置上（如 <code>0x6C</code>）。这个"请求/响应各一半"的位图布局是读 policy 最容易看错的地方。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q2 · 想把 <code>security_policy</code> 从"要求认证+加密"改成"只要求认证"，会怎样？</p>
+  <ul class="opts">
+    <li data-correct="true">方法调用失败，策略不变</li>
+    <li>策略成功降级为仅认证</li>
+    <li>加密被保留，仅认证也加上</li>
+    <li>策略被清零后重建</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>§4.4.7.3.1 明文："Once a kind of protection is added, it cannot be removed. If the method is invoked with a value indicating a security policy that is weaker than the value of the security_policy attribute, the method invocation fails." 安全策略是单向棘轮，只能加强。"选项三"混淆了——加强是"新增另一类保护"，不是"保留旧的再加新的"这种可选行为，削弱一律拒绝。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q3 · 同一个客户端用远程口与本地口连同一台表，Invocation counter 应该？</p>
+  <ul class="opts">
+    <li data-correct="true">按通道各自独立计数</li>
+    <li>两个通道共用一个计数器</li>
+    <li>只有远程口需要计数器</li>
+    <li>由服务端统一分配同一个值</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>§6.2.36 的说明与 OBIS 设计：Invocation counter 对象的 <b>B 段标识通信通道</b>，且 NOTE 明确 "The same client may use different communication channels e.g. a remote port and a local port. The invocation counter on the different channels may be different." 因此两个通道的 IC 是分开推进的。如果你从远程口拿到的 IC 去解本地口的报文，就会 tag 校验失败——这是很常见的对接故障。</p>
+</div>
+
+<div class="recall">
+  <h3>闭卷两问</h3>
+  <details open>
+    <summary>1 · Security setup 的 OBIS 是什么？它和 Invocation counter 用什么配对？</summary>
+    <p>Security setup：<code>0-0:43.0.e.255</code>（class_id 64）；Invocation counter：<code>0-b:43.1.e.255</code>（Data 类，B 段 = 通道）。<br>
+    两者用 <b>E 段</b>配对：§6.2.36 要求 <i>“The value in value group E shall be the same as in the logical name of the corresponding Security setup object.”</i></p>
+  </details>
+  <details open>
+    <summary>2 · "策略"与"访问权限"是什么关系？为什么排障时两个都要看？</summary>
+    <p>两者独立，最终生效的是<b>更强</b>的那一个：§4.4.7.2.2 明确 <i>“The access rights may require stronger protection than what is required by the security policy.”</i><br>
+    只看 policy 会漏判——某个对象的访问权限可能单独要求加密/签名。所以"policy 说不需要保护，报文却被保护了"是正常的，不是配置错误。</p>
+  </details>
+</div>
+
+<h2><span class="num">7</span>主要来源与课程收束</h2>
+
+<div class="callout quote">
+  <span class="label">首选一手来源</span>
+  <p>① <b>蓝皮书 §4.4.7</b>（Ed.17 Part 2, p.133–136）——Security setup 的类定义：属性表、方法表、每个属性的语义、<code>security_activate</code> / <code>key_transfer</code> / <code>key_agreement</code> 的参数结构与规则；<br>
+  ② <b>蓝皮书 §6.2.36</b>（p.656）——安全相关对象的 OBIS（含 Invocation counter 的通道语义）；<br>
+  ③ 绿皮书 <b>Table 27 / §9.2.5</b>——策略与套件的协议侧定义（第 1、5 课）。</p>
+</div>
+
+<ul>
+  <li>速查：<a href="../reference/security-suites.html">Suite 0/1/2 速查表</a>（第 6 节"套件与计数器对象配在哪里"与本课互补）</li>
+  <li>动手脚本：<a href="../assets/verify-dlms-gcm.py">assets/verify-dlms-gcm.py</a>（4 部分 · 10 组规范向量）</li>
+  <li>代码线索：Gurux 的 <code>GXDLMSSecuritySetup.cs</code> 实现了本课的全部属性与方法，可逐条对照</li>
+</ul>
+
+<div class="callout key">
+  <span class="label">课程到此的完整链条</span>
+  <p>第 1 课立坐标系（套件 vs 策略 vs 材料）→ 第 2 课下沉到报文字节（SH ‖ 内容 ‖ tag）→
+  第 3 课讲报文里怎么带密钥（general-* 与 key-info）→ 第 4 课讲建链时怎么认身份（HLS 四趟与 GMAC）→
+  第 5 课讲密钥从哪来（六把密钥与 KEK 轮换）→ <b>第 6 课把所有抽象落到一个你能 read/write 的对象上</b>。<br>
+  回头看 <a href="../MISSION.md">MISSION.md</a> 的成功标准——现在每一项都有对应的课与可验证的产物了。</p>
+</div>
+
+<div class="ask-teacher">
+  <strong>我是你的老师，卡住就问。</strong>
+  到此六课覆盖了从坐标系到设备对象的完整链路。接下来最有价值的两件事：
+  <b>① 你告诉我想深挖哪一块</b>（比如数字签名与证书链、Data protection 对象、或某种具体机制）；
+  <b>② 把真实设备的读数或抓包贴给我</b>——我们可以用本课第 5 节的清单逐项过，通常几分钟就能定位问题。
+</div>
+
+<div class="lesson-footer">
+  <h3>本课在本课程中的位置</h3>
+  <ul>
+    <li>上一课：<a href="0005-keys-overview-and-kek-rotation.html">密钥全貌：六把对称密钥从哪来，KEK 为什么要"自己包自己"</a></li>
+    <li>第 4 课：<a href="0004-association-authentication-hls-gmac.html">association 认证：三个等级、四趟 HLS，与能算出来的 GMAC</a></li>
+    <li>第 1 课：<a href="0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+  </ul>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>参考 · DLMS/COSEM 安全套件速查（Suite 0/1/2）</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>参考文档</span><span class="sep">·</span>
+  <span>绿皮书 Ed.11 §9.2.3.7 / §9.2.7.2</span><span class="sep">·</span>
+  <span>打印友好</span>
+</p>
+
+<h1>安全套件速查：Suite 0 / 1 / 2</h1>
+
+<div class="mission-line">
+  这张表要背下来的只有一件事：<b>Suite 编号决定"哪些算法可用、密钥多长"；是否真的加密/认证，由 security policy 与 access rights 决定。</b>
+  两者是正交的旋钮。
+</div>
+
+<h2><span class="num">1</span>规范原文对照表</h2>
+
+<p>绿皮书 Ed.11 <b>Table 27 – DLMS/COSEM security suites</b>（§9.2.3.7，p.228）逐字对照：</p>
+
+<div class="table-scroll">
+<table class="suite-table">
+  <caption>Table 27 · DLMS/COSEM security suites（“–” 表示规范未为该套件规定此算法）</caption>
+  <thead>
+    <tr>
+      <th>Suite Id</th>
+      <th>套件名称</th>
+      <th class="s0">认证加密</th>
+      <th>数字签名</th>
+      <th>密钥协商</th>
+      <th>哈希</th>
+      <th>密钥传输</th>
+      <th>压缩</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge s0">0</span></td>
+      <td><code>AES-GCM-128</code></td>
+      <td>AES-GCM-128</td>
+      <td>–</td><td>–</td><td>–</td>
+      <td>AES-128 key wrap</td>
+      <td>–</td>
+    </tr>
+    <tr>
+      <td><span class="badge s1">1</span></td>
+      <td><code>ECDH-ECDSA-AES-GCM-128-SHA-256</code></td>
+      <td>AES-GCM-128</td>
+      <td>ECDSA with P-256</td>
+      <td>ECDH with P-256</td>
+      <td>SHA-256</td>
+      <td>AES-128 key wrap</td>
+      <td>V.44</td>
+    </tr>
+    <tr>
+      <td><span class="badge s2">2</span></td>
+      <td><code>ECDH-ECDSA-AES-GCM-256-SHA-384</code></td>
+      <td>AES-GCM-256</td>
+      <td>ECDSA with P-384</td>
+      <td>ECDH with P-384</td>
+      <td>SHA-384</td>
+      <td>AES-256 key wrap</td>
+      <td>V.44</td>
+    </tr>
+    <tr>
+      <td><span class="badge">其他</span></td>
+      <td colspan="7">All other reserved（其余取值全部保留，规范未定义）</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout key">
+  <span class="label">三套件的关系，一句话</span>
+  <p><b>Suite 0 只有对称密码</b>（AES-GCM-128 + AES-128 key wrap），没有任何椭圆曲线算法；<b>Suite 1 与 Suite 2 是同一个算法家族的两个强度档</b>：128 位 / P-256 / SHA-256 对比 256 位 / P-384 / SHA-384。所以真正的分水岭在 <b>0 与 1 之间</b>，而不是 1 与 2 之间。</p>
+</div>
+
+<h2><span class="num">2</span>尺寸与参数（同一份规范的硬数字）</h2>
+
+<div class="table-scroll">
+<table>
+  <caption>出处：§9.2.3.3.7.3–6、§9.2.3.3.8、§9.2.3.7</caption>
+  <thead>
+    <tr><th>参数</th><th>符号</th><th>Suite 0</th><th>Suite 1</th><th>Suite 2</th><th>出处</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>加密密钥（GCM 分组密钥）</td><td><code>EK</code></td><td>128 bit</td><td>128 bit</td><td>256 bit</td><td>§9.2.3.3.7.4</td></tr>
+    <tr><td>认证密钥（进 AAD）</td><td><code>AK</code></td><td colspan="3">长度规则与 EK 相同（“the same rules apply”）</td><td>§9.2.3.3.7.5</td></tr>
+    <tr><td>认证标签长度</td><td><code>t</code></td><td colspan="3"><b>96 bit</b>（三个套件相同）</td><td>§9.2.3.3.7.6</td></tr>
+    <tr><td>密钥加密密钥</td><td><code>KEK</code></td><td>128 bit</td><td>128 bit</td><td>256 bit</td><td>§9.2.3.3.8</td></tr>
+    <tr><td>初始化向量</td><td><code>IV</code></td><td colspan="3"><b>96 bit = 8 字节 system title（fixed field）+ 4 字节调用计数器（invocation field）</b></td><td>§9.2.3.3.7.3</td></tr>
+    <tr><td>密钥包装算法</td><td>—</td><td colspan="3">AES key wrap（RFC 3394），按 64 bit 分块；输出 (n+1) 个 64 bit 块</td><td>§9.2.3.3.8</td></tr>
+    <tr><td>哈希</td><td>—</td><td>无</td><td>SHA-256</td><td>SHA-384</td><td>§9.2.3.7 / §9.2.3.2</td></tr>
+    <tr><td>压缩</td><td>—</td><td>无</td><td colspan="2">ITU-T V.44:2000（Annex B.1 packet method），由 SC 的 bit7 指示</td><td>§9.2.3.6</td></tr>
+    <tr><td>随机数</td><td>RNG</td><td colspan="3">三套件共同要求：强度足够的 RNG，最好非确定性；否则用足够熵做种子</td><td>§9.2.3.5</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2><span class="num">3</span>在报文里怎么认出套件：Security Control 字节</h2>
+
+<p>套件号就写在每一个受保护报文的 <b>security control byte（SC）的低 4 位</b>。SC 后面紧跟 4 字节调用计数器 IC，两者合称 security header：<code>SH = SC ‖ IC</code>（§9.2.7.2.4.2）。</p>
+
+<div class="bytes">
+  <div class="f enc"><b>bit 7</b><span>C 压缩</span></div>
+  <div class="f sec"><b>bit 6</b><span>Key_Set</span></div>
+  <div class="f aut"><b>bit 5</b><span>E 加密</span></div>
+  <div class="f aut"><b>bit 4</b><span>A 认证</span></div>
+  <div class="f plain"><b>bit 3…0</b><span>Security_Suite_Id</span></div>
+</div>
+<p class="sidenote" style="font-family:var(--sans);font-size:.8rem;color:var(--ink-soft)">注意位序：<b>A 在 bit 4、E 在 bit 5</b>。把这两个记反，是排查"为什么对方拒绝我的报文"时最常见的自伤。</p>
+
+<p>位含义（Table 45 逐字）：</p>
+<ul>
+  <li><b>bit 3…0</b>：Security_Suite_Id —— 0 / 1 / 2，对应 Table 27；其余为保留值。</li>
+  <li><b>bit 4（A）</b>：authentication applied —— 计算并携带 GCM tag。</li>
+  <li><b>bit 5（E）</b>：encryption applied —— 明文被加密。</li>
+  <li><b>bit 6</b>：Key_Set —— 0 = unicast（GUEK），1 = broadcast（GBEK）；使用 dedicated / general ciphering 时该位不适用，应为 0。</li>
+  <li><b>bit 7</b>：compression 是否启用（V.44，仅 Suite 1 / 2 提供）。</li>
+</ul>
+
+<div class="callout">
+  <span class="label">动手</span>
+  <p>用 <a href="../lessons/0001-security-suites-overview.html#decoder">第 1 课的 SC 字节解码器</a> 把 <code>0x30</code>、<code>0x11</code>、<code>0x21</code>、<code>0x32</code>、<code>0x91</code> 各点一遍，直到你不需要看表就能说出"套件 + 保护方式"。<b>特别把 <code>0x11</code> 与 <code>0x21</code> 成对记</b>：它们只差 bit5（E），一个是仅认证、一个是仅加密。</p>
+</div>
+
+<h2><span class="num">4</span>A/E 位决定明文与 AAD（Table 46）</h2>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 46 · Plaintext and Additional Authenticated Data（SC 为安全控制字节，AK 为认证密钥，I 为被保护的 xDLMS APDU 或 COSEM 数据，C 表示压缩已应用）</caption>
+  <thead>
+    <tr><th>E</th><th>A</th><th>保护</th><th>P（明文）</th><th>A（AAD），service-specific / glo / ded ciphering</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>0</td><td>0</td><td>None</td><td>–</td><td>–</td></tr>
+    <tr><td>0</td><td>1</td><td>Authenticated only</td><td>–</td><td><code>SC ‖ AK ‖ (C) I</code></td></tr>
+    <tr><td>1</td><td>0</td><td>Encrypted only</td><td><code>(C) I</code></td><td>–</td></tr>
+    <tr><td>1</td><td>1</td><td>Encrypted and authenticated</td><td><code>(C) I</code></td><td><code>SC ‖ AK</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>general-ciphering 的 AAD 更长：<code>SC ‖ AK ‖ transaction-id ‖ originator-system-title ‖ recipient-system-title ‖ date-time ‖ other-information</code>，且这些字段以 A-XDR 编码的 OCTET STRING 形式出现，<b>长度和值都要进 AAD</b>（Table 46 脚注 1）。</p>
+
+<h2><span class="num">5</span>四个最容易搞混的点</h2>
+
+<div class="callout trap">
+  <span class="label">混淆 1</span>
+  <p><b>“Suite 0 = 不加密/无安全”是错的。</b>Table 27 里 Suite 0 的认证加密一栏写的就是 <code>AES-GCM-128</code>：它照样能加密、能认证。它的真实短板是<b>没有 ECDH/ECDSA/哈希</b>，因此不能在协议内做密钥协商，也不能做数字签名与证书认证——密钥只能带外预置或用已有 KEK 包装。</p>
+</div>
+
+<div class="callout trap">
+  <span class="label">混淆 2</span>
+  <p><b>“无保护”是另一个旋钮。</b>security policy 取值 <code>0</code> 才表示 "no cryptographic protection is required"（Table 42 注）。套件与策略是两个独立维度：Suite 2 + policy 0 是完全合法的组合，只是浪费了能力。</p>
+</div>
+
+<div class="callout trap">
+  <span class="label">混淆 3</span>
+  <p><b>“安全等级”不是规范里的字段名。</b>绿皮书 §9.2 用 <b>security policy</b>（Table 42，逐位）与 <b>access rights</b>（Table 43，逐位）表达保护要求；各实现库（如 Gurux）用 <code>Authentication / Encryption / AuthenticationEncryption</code> 这种"安全等级"枚举对应 A/E 两位。看到别人说"这条用 level 3"，要问清是哪套术语。</p>
+</div>
+
+<div class="callout trap">
+  <span class="label">混淆 4</span>
+  <p><b>保护强度取"更强者"。</b>规范规定：应施加的保护取 security policy 与 access rights 两者中<b>更强</b>的要求（§9.2.2.4），并且 <b>保护多于要求永远允许，少于要求一律拒绝</b>（§9.2.7.2.2）。这解释了为什么改小 access rights 后原有客户端仍然能连通，反过来却会立刻被拒。</p>
+</div>
+
+<h2 id="where"><span class="num">6</span>套件配在哪里：Security setup 对象（实现视角）</h2>
+
+<p>规范层面的"算法组合"落到设备上，就是蓝皮书里的一个接口类：</p>
+
+<ul>
+  <li><b>“Security setup” 接口类，class_id = 64，version 1</b>（蓝皮书 §4.4.7）。它的职责逐字是：<i>“contain the necessary information on the security suite in use and the security policy applicable between a client and a server identified by their respective system title”</i>。</li>
+  <li>它<b>由 Association 对象引用</b>：Association LN 的 <code>security_setup_reference</code> 属性 / Association SN 的同名属性。也就是说——<b>套件是"每条应用关联（AA）"的属性，不是全局属性</b>。同一个服务端对不同客户端可以用不同套件。</li>
+  <li>客户端与服务端由各自的 <b>system title</b> 标识，这也正是 IV 的固定字段（见第 2 节）。</li>
+</ul>
+
+<div class="table-scroll">
+<table>
+  <caption>“Security setup” version 1 中与本课相关的属性（蓝皮书 §4.4.7.2）</caption>
+  <thead><tr><th>#</th><th>属性名</th><th>类型</th><th>它管什么</th></tr></thead>
+  <tbody>
+    <tr><td>2</td><td><code>security_policy</code></td><td>enum（位图，unsigned8）</td><td>本 AA 必须施加哪些保护（Table 42）</td></tr>
+    <tr><td>3</td><td><code>security_suite</code></td><td>enum</td><td><b>本 AA 允许使用哪些算法</b>：(0) AES-GCM-128 + AES-128 key wrap；(1) 128 位档 + P-256 + SHA-256 + V.44；(2) 256 位档 + P-384 + SHA-384 + V.44；(3)…(15) reserved</td></tr>
+    <tr><td>4</td><td><code>client_system_title</code></td><td>octet-string (8)</td><td>当前客户端的 system title（也出现在 AARQ 的 calling-AP-title）</td></tr>
+    <tr><td>5</td><td><code>server_system_title</code></td><td>octet-string (8)，只读</td><td>服务端 system title（期间 AARE 的 responding-AP-title）</td></tr>
+    <tr><td>6</td><td><code>certificates</code></td><td>array of structure</td><td>已存放的 X.509 v3 证书信息（实体、类型、序列号、issuer/subject…）</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>version 1 还提供方法：<code>security_activate</code>、<code>key_transfer</code>、<code>key_agreement</code>、<code>generate_key_pair</code>、<code>import_certificate</code>、<code>export_certificate</code>、<code>remove_certificate</code>。其中一条规则值得现在就记住：</p>
+
+<div class="callout warn">
+  <span class="label">安全策略只能加强，不能削弱</span>
+  <p>蓝皮书 §4.4.7.3.1 逐字规定：<i>“Once a kind of protection is added, it cannot be removed. If the method is invoked with a value indicating a security policy that is weaker than the value of the security_policy attribute, the method invocation fails.”</i>
+  对实现者意味着：<b>把安全策略调强是单向操作</b>，回退需要客户端在带外被重新配置（而不是靠再调一次方法）。写自动化测试时要准备"先加强后无法撤销"的清理路径。</p>
+</div>
+
+<div class="callout trap">
+  <span class="label">旧表的一个硬限制</span>
+  <p>如果设备上是 <b>“Security setup” version 0</b>（蓝皮书 §5.4.8，旧版本），它的 <code>security_suite</code> 取值范围逐字是 <code>(0) AES-GCM-128 … (1) …(15) reserved</code>——<b>只能表达 Suite 0</b>。这就是"我把配置改成 Suite 1 却怎么也生效不了"的常见根因之一：不是密钥不对，而是这个对象版本根本没有第二个值可填。此时需要的是固件里 version 1 的 Security setup。</p>
+</div>
+
+<p><b>配置侧与报文侧要能互相印证：</b>配置里的 <code>security_suite</code>（属性 3）说明"允许用什么"，报文 SC 字节的低 4 位说明"这条实际用了什么"。两者矛盾时，先怀疑：读取的是不是另一条 AA 的 Security setup、或者读到的属性值被缓存了。</p>
+
+<h3>这两个对象的寻址（OBIS）</h3>
+
+<div class="table-scroll">
+<table>
+  <caption>蓝皮书 Ed.17 Part 2 §6.2.36（ch6-6-2，p.656）</caption>
+  <thead><tr><th>对象</th><th>IC</th><th>OBIS（A-B:C:D-E:F）</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>Security setup</td><td>64</td><td><code>0-0:43.0.<i>e</i>.255</code></td><td>“For each Association object, there is one Security setup object managing security within that AA.”——value group <b>E</b> 给实例编号</td></tr>
+    <tr><td>Invocation counter</td><td>1（Data）</td><td><code>0-<i>b</i>:43.1.<i>e</i>.255</code></td><td>存放 IV 的 invocation 字段；旧版标准里叫 <b>frame counter object</b>；<b>B</b> 标识通信通道，<b>E</b> 与对应 Security setup 的 E 相同</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout key">
+  <span class="label">为什么要记住第二行</span>
+  <p>蓝皮书明确写着：<i>“The same client may use different communication channels e.g. a remote port and a local port. The invocation counter on the different channels may be different.”</i>
+  这解释了两件在现场很常见的事：① 同一个客户端走远程口和本地口的计数器可以各自独立，抓包对比时不要以为对方"计数器乱了"；② 计数器是<b>要落盘的对象</b>，重启后若从 0 重新开始，对端会按 §9.2.3.3.7.3 的规则拒绝（<code>invocation-counter-error</code>）。</p>
+</div>
+
+<h2><span class="num">7</span>来源</h2>
+<ul>
+  <li>绿皮书 Ed.11，DLMS UA 1000-1 Ed.11 — 本地 Markdown：<code>GreenBook\output\book\ai\ch9\markdown\ch9-9-2-information-security-in-dlms-cosem.md</code>
+    <ul>
+      <li>§9.2.2.3 安全上下文（suite / policy / material）</li>
+      <li>§9.2.3.3.7 GCM：IV、EK、AK、tag 长度</li>
+      <li>§9.2.3.3.8 AES key wrap（RFC 3394）</li>
+      <li>§9.2.3.7 + Table 27 安全套件</li>
+      <li>§9.2.7.2.2 + Table 42/43 安全策略与访问权限</li>
+      <li>§9.2.7.2.4.2 + Table 45 security control byte；§9.2.7.2.4.3 + Table 46 P/AAD</li>
+    </ul>
+  </li>
+  <li>原始 PDF：<code>D:\project\personal\dlms\Green-Book-Ed-11-V1-0.pdf</code>（页码见每节标题后的 <code>&lt;!-- p.xxx --&gt;</code> 标注）</li>
+  <li>蓝皮书 Ed.17 Part 2 — 本地 Markdown：<code>GreenBook\output\blue-book-v2\ai\ch4\markdown\ch4-4-4-interface-classes-for-access-control-and-managem.md</code>
+    <ul>
+      <li>§4.4.7 “Security setup”（class_id = 64, version = 1）：属性 2/3/4/5/6 与方法 1–8</li>
+      <li>§5.4.8 “Security setup” 旧版本（version 0）：<code>security_suite</code> 只能取 0</li>
+      <li>§6.2.36（<code>ch6\markdown\ch6-6-2-abstract-cosem-objects.md</code>，p.656）：Security setup 与 Invocation counter 的 OBIS 表</li>
+    </ul>
+  </li>
+  <li>实现对照：<code>Gurux.DLMS.Net\Development</code>（C#）、<code>gurux.dlms.java-master\development</code>（Java）——见 <a href="../RESOURCES.md">RESOURCES.md</a></li>
+</ul>
+
+<div class="ask-teacher">
+  <strong>卡住就问。</strong>
+  这张表里任何一格你都能让我展开：比如"为什么 Suite 0 还要 KEK"、"Table 27 里 Compression 为什么只有 1/2 有"，或者把你在报文里看到的一个 SC 字节发我，我陪你逐位读。
+</div>
+
+<div class="lesson-footer">
+  <h3>相关</h3>
+  <ul>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+    <li>第 1 课：<a href="../lessons/0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+    <li>密码学直觉：<a href="crypto-primer.html">AES-GCM / ECDH / ECDSA 最小必要直觉</a></li>
+  </ul>
+</div>
+
+</body>
+</html>

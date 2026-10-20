@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 5 课 · 密钥全貌：六把对称密钥从哪来，KEK 为什么要"自己包自己"</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>第 5 课</span><span class="sep">·</span>
+  <span>约 17 分钟</span><span class="sep">·</span>
+  <span>前置：第 3、4 课</span><span class="sep">·</span>
+  <span>产出：能按用途与建立方式给六把对称密钥归类，能说清 KEK 轮换的顺序</span>
+</p>
+
+<h1>密钥全貌：六把对称密钥从哪来，KEK 为什么要"自己包自己"</h1>
+
+<div class="mission-line">
+  <b>为什么学这个：</b>前四课里密钥是"给定"的（EK、AK 直接用）。但真实设备上，
+  <b>这些密钥怎么进到表里？换了怎么通知对方？</b>——这是运维与对接的真正工作。
+  这一课把所有对称密钥一次理清，并讲清 DLMS 里唯一"密钥管理"的机制：<code>key_transfer</code> + KEK 包装。
+</div>
+
+<div class="callout key">
+  <span class="label">本课唯一要带走的一句话</span>
+  <p>DLMS 的对称密钥体系是一棵<b>以 master key（KEK）为根的树</b>：
+  KEK 通过<b>带外</b>预置，其余所有密钥（GUEK / GBEK / GAK / 临时密钥，乃至 KEK 自身的更新）都用 <b>AES key wrap 由 KEK 包装</b>后传输。
+  所以"换密钥"这件事，永远是"<b>用旧 KEK 包新密钥</b>"；连换 KEK 也是"<b>用旧 KEK 包新 KEK</b>"。</p>
+</div>
+
+<h2><span class="num">1</span>六把对称密钥：一张表看清用途</h2>
+
+<p>§9.2.5.1 <b>Table 28</b>（p.230）定义了全部对称密钥。我把它压缩成"用途 + 谁在用 + 从哪来"三列，方便你直接查：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 28 · Symmetric keys types（§9.2.5.1, p.230）精简</caption>
+  <thead><tr><th>密钥</th><th>干什么用</th><th>怎么建立</th><th>用在哪</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>master key</b><br>（即 KEK）</td>
+      <td>包装其它密钥的"密钥加密密钥"</td>
+      <td><b>Out of band</b>（带外预置）<br>Key wrapping<br>Key agreement</td>
+      <td>general-ciphering 里作为 KEK 标识</td>
+    </tr>
+    <tr>
+      <td><b>GUEK</b><br>global unicast encryption key</td>
+      <td>单播报文的块加密密钥</td>
+      <td>Key wrapping / Key agreement</td>
+      <td>service-specific global ciphering、general-glo-ciphering、general-ciphering；<br>Data protection 的参数</td>
+    </tr>
+    <tr>
+      <td><b>GBEK</b><br>global broadcast encryption key</td>
+      <td>广播报文的块加密密钥</td>
+      <td>Key wrapping</td>
+      <td>同上（广播场景）</td>
+    </tr>
+    <tr>
+      <td><b>GAK</b><br>(global) authentication key</td>
+      <td>作为 AAD 的一部分参与认证</td>
+      <td>Key wrapping / Key agreement</td>
+      <td>客户端-服务端之间<b>以及</b>第三方-服务端之间的全部 APDU</td>
+    </tr>
+    <tr>
+      <td><b>dedicated key</b><br>（单播，专用密钥）</td>
+      <td>AA 生命周期内的单播块加密密钥</td>
+      <td>随 <code>xDLMS Initiate.request</code> <b>随报文传送</b></td>
+      <td>service-specific dedicated ciphering、general-ded-ciphering</td>
+    </tr>
+    <tr>
+      <td><b>ephemeral<br>encryption key</b><br>（临时密钥）</td>
+      <td>一次性的块加密密钥</td>
+      <td>Key wrapping 或 Key agreement</td>
+      <td>general-ciphering（第 3 课那条就是）</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <span class="label">两个最容易混的点</span>
+  <p><b>① "AK" 在规范里的正式名是 GAK。</b>我们前几课口头说的 "AK"，Table 28 里叫 <b>(Global) Authentication Key, GAK</b>。
+  代码里常写 <code>AuthenticationKey</code>——同一个东西。GUEK / GBEK / GAK 都由 "<b>Security setup</b>" 对象持有（Table 28 脚注 1、2）。<br>
+  <b>② distinguished-key 不是自己选的，是随 AARQ 带来的。</b>dedicated key 的建立方式是"随 <code>xDLMS Initiate.request</code> 传送"，
+  与其它密钥走完全不同的通道——这也是为什么它只在本条 AA 生命周期内有效。</p>
+</div>
+
+<h2><span class="num">2</span>三条建立路径：预置、包装、协商</h2>
+
+<p>Table 28 的"Key establishment"一列只有三种值。理解这三条路，就理解了设备上密钥是怎么落地的：</p>
+
+<div class="flow">
+  <div class="step"><b>① Out of band</b><span>带外预置。出厂/装表时人工配。<br><b>只有 master key 能这么来</b></span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>② Key wrapping</b><span>用 KEK 把随机生成的新密钥包起来传（§9.2.5.4）。<br>靠 <code>key_transfer</code> 方法</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>③ Key agreement</b><span>现场协商（§9.2.5.5）。<br>靠 <code>key_agreement</code> 方法，C(2e,0s)</span></div>
+</div>
+
+<p>三条路的关键区别在于<b>"信任从哪来"</b>：</p>
+
+<ul>
+  <li><b>带外</b>：信任来自运维过程（谁装的表、谁给的密钥）。规范对这条没有技术描述，因为它发生在协议之外。</li>
+  <li><b>包装（key wrapping）</b>：信任来自"双方已经共享 KEK"。算法是 <b>AES key wrap</b>（§9.2.3.3.8 / RFC 3394），
+  <b>KEK 就是 master key</b>（§9.2.5.4 原文：<i>“The KEK is the master key. Consequently, this method can be used only between parties sharing the master key.”</i>）。</li>
+  <li><b>协商（key agreement）</b>：信任来自"双方各自的静态密钥对 + 可选的证书"。这就是第 3 课的 ECDH 家族。</li>
+</ul>
+
+<h2><span class="num">3</span>key_transfer：密钥分发长什么样</h2>
+
+<p>§9.2.5.4 规定：要分发静态密钥，<b>必须由客户端先生成</b>，然后用 <code>key_transfer</code> 方法送给服务端。
+方法参数的结构在蓝皮书 §4.4.7.3.2（p.136）——注意 <code>key_id</code> 的取值就是 Table 28 前四把密钥：</p>
+
+<pre><code>data ::= array  key_transfer_data
+
+key_transfer_data ::= structure
+{
+    key_id: enum:
+        (0) global unicast encryption key,      // GUEK
+        (1) global broadcast encryption key,    // GBEK
+        (2) authentication key,                 // GAK
+        (3) master key (KEK)                    // ← 连 KEK 自己也走这条路
+    key_wrapped: octet-string                   // 用 KEK 做 AES key wrap 的结果
+}</code></pre>
+
+<p><b>两个实操要点（都来自规范原文）：</b></p>
+
+<ul>
+  <li><b>可以一次传多把</b>：用 <code>n</code> 个元素的数组一次调完，或者调 <code>n</code> 次、每次只传一把（NOTE 1）。</li>
+  <li><b>失败即全不变</b>：<i>“If the unwrapping of the key(s) is not successful, the method invocation fails … The keys are not changed.”</i>（§4.4.7.3.2）
+  ——解包失败不会部分写入，这一点对"换密钥换了一半"的灾难场景很重要。</li>
+</ul>
+
+<h2><span class="num">4</span>KEK 轮换：为什么是"用旧 KEK 包新 KEK"</h2>
+
+<p>现在到本课的核心。既然 <code>key_id</code> 里有 <code>(3) master key (KEK)</code>，说明 <b>KEK 自己也是可以被 <code>key_transfer</code> 传送的</b>。
+但传送它需要 KEK——这不就是"鸡生蛋"吗？</p>
+
+<div class="callout key">
+  <span class="label">答案是：用旧 KEK 包新 KEK，然后立刻切换</span>
+  <p>轮换的顺序是固定的，漏掉任何一步都会把设备锁死：</p>
+  <ol>
+    <li>客户端<b>生成新 KEK</b>；</li>
+    <li>用<b>当前（旧）KEK</b>做 AES key wrap，把新 KEK 包起来；</li>
+    <li>通过 <code>key_transfer</code> 发送，<code>key_id = 3</code>；</li>
+    <li>服务端<b>用旧的 KEK 解包</b>，拿到新 KEK——解包成功说明客户端确实持有旧 KEK；</li>
+    <li>服务端回 <code>success</code>，<b>新 KEK 立即生效</b>。</li>
+  </ol>
+  <p>第 5 步的"立即生效"是规范明文（§4.4.7.3.2）：<i>“The new keys are activated immediately after result of the method invocation is sent back with result = success. Notice that this rule equally applies to all keys, including the master key.”</i>
+  ——<b>连 master key 也一样</b>。</p>
+</div>
+
+<div class="callout trap">
+  <span class="label">顺序错一步的两个典型事故</span>
+  <p><b>① 先切 KEK、后发报文。</b>如果客户端先把本地的 KEK 换成新的再去调用 <code>key_transfer</code>，
+  服务端还在用旧 KEK 解包 → <b>解包失败、密钥不变</b>，而客户端以为换好了。之后所有通信都用错密钥。<br>
+  <b>② 忘记"立即生效"。</b>新 KEK 在服务端回 <code>success</code> 的<b>同一刻</b>就已经生效，
+  所以紧接着的下一条报文就必须用新 KEK 保护。任何"等服务端再确认一次"的缓冲逻辑都会失败。<br><br>
+  规范还留了一句兜底（NOTE 3）：<i>“If using the new keys fails, the client may try to recover … by reverting to using the previous keys or repeating the key transfer process.”</i>
+  ——即客户端应保留旧密钥以便回滚。<b>但既然新 KEK 已生效，回滚本身也要用新 KEK 走一遍 <code>key_transfer</code> 把旧的包回去。</b>规范没展开这个细节，属于实现的判断空间。</p>
+</div>
+
+<h2><span class="num">5</span>把四课串起来：一条报文用到了哪几把密钥</h2>
+
+<p>这套体系最容易"一看就懂、一用就乱"的地方是：<b>一条报文可能同时涉及多把密钥</b>，各司其职。拿第 3 课那条 general-ciphering 报文举例：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>同一条 general-ciphering 报文里，每把密钥的角色</caption>
+  <thead><tr><th>密钥</th><th>在这条报文里做什么</th></tr></thead>
+  <tbody>
+    <tr><td><b>KEK</b>（master key）</td><td>包装 <code>key-info</code> 里携带的内容（如果 key-info 是 wrapped-key）——<b>保护"密钥本身"</b></td></tr>
+    <tr><td><b>临时密钥 / GUEK</b></td><td>真正加密 <code>ciphered-content</code> 里那段 APDU——<b>保护"数据"</b></td></tr>
+    <tr><td><b>GAK</b>（AK）</td><td>进入 <b>AAD</b>，用于计算 <code>ciphered-content</code> 尾部的认证 tag——<b>保护"完整性"</b></td></tr>
+    <tr><td><b>system title</b></td><td>作为 <b>IV 的前 8 字节</b>；同时决定用哪套密钥——<b>标识"谁"</b></td></tr>
+    <tr><td><b>IC</b></td><td>作为 <b>IV 的后 4 字节</b>，保证同一密钥下每条报文的 IV 都不同——<b>防重放</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>所以"密钥分层"的意义是：</b>换临时密钥不用动 KEK，换 GUEK 不用换表；而 KEK 只在需要换 GUEK/GAK/KEK 本身时才用到。
+这就是为什么 KEK 只做"包装"一件事——它出现得越少，泄漏窗口越小。</p>
+
+<h2><span class="num">6</span>练一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q1 · 哪把密钥在规范里只能"带外（out of band）"建立？</p>
+  <ul class="opts">
+    <li data-correct="true">master key（KEK）</li>
+    <li>global unicast encryption key</li>
+    <li>dedicated key</li>
+    <li>ephemeral encryption key</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>Table 28 里只有 master key 那一行有 "Out of band" 这一建立方式（它还有 key wrapping 与 key agreement 两条，用于<b>更新</b>）。原因是结构性的：KEK 是包装其它密钥的根，它自己无法被任何密钥包装。<b>初始的</b> KEK 只能靠带外预置——这也是为什么装表时"抄密钥"这个动作不可省。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q2 · 用 <code>key_transfer</code> 换 KEK 时，新 KEK 应该用哪把密钥包装？</p>
+  <ul class="opts">
+    <li data-correct="true">旧的（当前生效的）KEK</li>
+    <li>新 KEK 自己包装自己</li>
+    <li>用 GAK 包装</li>
+    <li>用服务端的公钥包装</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>§9.2.5.4 明确 "The KEK is the master key"——包装永远用<b>当前共享的</b> KEK，也就是旧的。用新 KEK 自包对方解不开（除非对方已知新 KEK，那就失去意义了）。GAK 只进 AAD、不做包装；DLMS 不用公钥直接加密密钥（那是 ECDH 协商的领域，是另一条路）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q3 · <code>key_transfer</code> 失败（解包不成功）后，设备上的密钥处于什么状态？</p>
+  <ul class="opts">
+    <li data-correct="true">全部保持原样，一把都不变</li>
+    <li>已解开的先生效，其余不变</li>
+    <li>全部被清零，需重新预置</li>
+    <li>回退到出厂默认密钥</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>§4.4.7.3.2 原文：<i>“If the unwrapping of the key(s) is not successful, the method invocation fails and an appropriate reason for the failure shall be sent back. The keys are not changed.”</i> 这是原子性保证——即使一次传了多把密钥，部分失败也不会部分生效。正是这条让"换密钥"变得可重试、可回滚。</p>
+</div>
+
+<div class="recall">
+  <h3>闭卷两问</h3>
+  <details open>
+    <summary>1 · 不看资料，说出六把对称密钥的名字与各自一句话用途。</summary>
+    <p><b>master key / KEK</b>——包装其它密钥（根）；<b>GUEK</b>——单播加密密钥；<b>GBEK</b>——广播加密密钥；
+    <b>GAK</b>——进 AAD 做认证；<b>dedicated key</b>——AA 内单播加密密钥，随 <code>Initiate.request</code> 传送；
+    <b>ephemeral key</b>——一次性加密密钥。依据：Table 28（§9.2.5.1, p.230）。</p>
+  </details>
+  <details open>
+    <summary>2 · 为什么说 KEK 是"用得越少越好"？</summary>
+    <p>因为 KEK 唯一职责是<b>包装其它密钥</b>，不参与任何数据加解密。日常报文用临时密钥或 GUEK，用不到它；
+    它只在换密钥时出现。所以把 KEK 单独保管、少用，可以把"根密钥泄漏"的暴露面压到最小——这正是密钥分层的意义（§9.2.5.4 / Table 28 的 Use 列）。</p>
+  </details>
+</div>
+
+<h2><span class="num">7</span>主要来源与下一步</h2>
+
+<div class="callout quote">
+  <span class="label">首选一手来源</span>
+  <p>① <b>§9.2.5.1 Table 28</b>（绿皮书 p.230）——对称密钥类型总表；<br>
+  ② <b>§9.2.5.3 / §9.2.5.4</b>（p.231）——key identification 与 key wrapping（"KEK 就是 master key"那句在这里）；<br>
+  ③ <b>蓝皮书 §4.4.7.3.2</b>（p.136）——<code>key_transfer</code> 的参数结构与"立即生效"/"失败不变"两条规则；<br>
+  ④ <b>§9.2.5.5</b>——key agreement 的三条路线（第 3 课已讲 ECDH 部分）。</p>
+</div>
+
+<ul>
+  <li>速查：<a href="../reference/security-suites.html">Suite 0/1/2 速查表</a> · <a href="../reference/crypto-primer.html">密码学最小必要直觉</a>（含 AES key wrap 一段）</li>
+  <li>素材（带章节引证）：<code>.research\green-book-security-extract.md</code>（Table 28/29 原文）</li>
+  <li>代码线索：Gurux 的 <code>GXDLMSSecuritySetup.cs</code> 实现了 <code>key_transfer</code> / <code>key_agreement</code>，可对照本课的参数结构读</li>
+</ul>
+
+<h3>下一课</h3>
+<ol>
+  <li><b>Security setup 对象实操</b> —— class_id 64、属性 1–6（含 <code>security_policy</code> 位图与 <code>security_suite</code> 枚举）、方法 1–8，
+  以及为什么 <code>security_activate</code> 只能"加强"不能"削弱"（这节最贴近你对接实际设备）。</li>
+</ol>
+
+<div class="ask-teacher">
+  <strong>我是你的老师，卡住就问。</strong>
+  如果你手上有具体的密钥更换流程（比如某型号表的密钥轮换工单），贴给我，
+  我们可以逐条对照本课的五步顺序看它有没有踩坑；也可以说说你打算用哪条路建立 GUEK（包装还是协商），我帮你把报文级步骤列出来。
+</div>
+
+<div class="lesson-footer">
+  <h3>本课在本课程中的位置</h3>
+  <ul>
+    <li>上一课：<a href="0004-association-authentication-hls-gmac.html">association 认证：三个等级、四趟 HLS，与能算出来的 GMAC</a></li>
+    <li>第 3 课：<a href="0003-general-ciphering-key-info.html">general-* 家族：报文里怎么"顺便"带上一把密钥</a></li>
+    <li>第 1 课：<a href="0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+  </ul>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

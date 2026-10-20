@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 3 课 · general-* 家族：报文里怎么"顺便"带上一把密钥</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>第 3 课</span><span class="sep">·</span>
+  <span>约 16 分钟</span><span class="sep">·</span>
+  <span>前置：第 1、2 课</span><span class="sep">·</span>
+  <span>产出：能拆 general-ciphering 的两层结构，看懂 key-info</span>
+</p>
+
+<h1>general-* 家族：报文里怎么"顺便"带上一把密钥</h1>
+
+<div class="mission-line">
+  <b>为什么学这个：</b>第 2 课那条报文只能保护"服务特定"的几种 APDU，而且密钥必须提前配好。一旦要做<b>密钥分发或现场协商</b>，就必须用 general-* 家族——<b>它能在报文里说明"这次用哪把密钥"</b>。抓包里看到 <code>DD</code> 开头的长报文，就是它。
+</div>
+
+<div class="callout key">
+  <span class="label">本课唯一要带走的一句话</span>
+  <p>general-ciphering 是<b>两层结构</b>：外层是"寄件信息"（<code>transaction-id ‖ 两端 system title ‖ date-time ‖ other-information ‖ key-info</code>），
+  里面那层 <code>ciphered-content</code> 才是第 2 课学的 <code>SH ‖ 内容 ‖ tag</code>。
+  <b>key-info 是这一族独有的</b>——正是它让"报文里顺带送一把密钥"成为可能。</p>
+</div>
+
+<h2><span class="num">1</span>先分清四族报文</h2>
+
+<p>绿皮书 <b>Table 47</b>（§9.2.7.2.4.9, p.254）把受保护 APDU 分成三族，"谁有哪些字段"一目了然：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 47 精简版（“+”有 / “–”无）</caption>
+  <thead><tr><th>字段</th><th>服务特定 glo/ded</th><th>general-glo / general-ded</th><th>general-ciphering</th></tr></thead>
+  <tbody>
+    <tr><td>system-title</td><td>–</td><td><b>+</b></td><td>–（改成两端各一个）</td></tr>
+    <tr><td>transaction-id</td><td>–</td><td>–</td><td><b>+</b></td></tr>
+    <tr><td>originator- / recipient-system-title</td><td>–</td><td>–</td><td><b>+</b></td></tr>
+    <tr><td>date-time / other-information</td><td>–</td><td>–</td><td><b>+</b></td></tr>
+    <tr><td><b>key-info</b></td><td>–</td><td>–</td><td><b>+</b>（唯一）</td></tr>
+    <tr><td>SC / IC / 内容 / tag</td><td>+</td><td>+</td><td>+</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>另外还有一族不带 SH 与 tag：<b>general-signing</b>（数字签名，§9.5 的 ASN.1 是 <code>SEQUENCE { transaction-id, … , content, signature }</code>）——留到讲签名时再拆。</p>
+
+<p>各族的 APDU tag（Table 47 的 ASN.1 标签号，编码成一个字节）：</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>tag</th><th>ASN.1 标签</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>0xC8</code></td><td>服务特定</td><td>glo-get-request（第 2 课那条）</td></tr>
+    <tr><td><code>0xDB</code> / <code>0xDC</code></td><td>[219] / [220]</td><td>general-glo-ciphering / general-ded-ciphering</td></tr>
+    <tr><td><code>0xDD</code></td><td>[221]</td><td><b>general-ciphering</b>（本课主角）</td></tr>
+    <tr><td><code>0xDF</code></td><td>[223]</td><td>general-signing</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2><span class="num">2</span>拆一条真的：Annex C.2 的 401 字节请求</h2>
+
+<p>绿皮书附录 C.2 给了一条完整的 general-ciphering 报文（就是"用 One-Pass DH 协商一把临时密钥，并用它保护一条 ACCESS 请求"）。我从规范原文里把它逐字节取出来，并用"总长必须等于规范标注的 401 字节"校验通过：</p>
+
+<div class="bytes">
+  <div class="f plain"><b>Tag</b><span>DD</span></div>
+  <div class="f sec"><b>transaction-id</b><span>8 B</span></div>
+  <div class="f sec"><b>orig / recip ST</b><span>8 + 8 B</span></div>
+  <div class="f plain"><b>date-time / other-info</b><span>0 + 0 B</span></div>
+  <div class="f sec"><b>key-info</b><span>132 B</span></div>
+  <div class="f enc"><b>ciphered-content</b><span>235 B</span></div>
+</div>
+
+<div class="table-scroll">
+<table>
+  <caption>Annex C.2 · general-ciphering (Access-Request)，规范逐字标注</caption>
+  <thead><tr><th>字段</th><th>字节</th><th>怎么读</th></tr></thead>
+  <tbody>
+    <tr><td><code>Tag</code></td><td><code>DD</code></td><td>general-ciphering</td></tr>
+    <tr><td><code>transaction-id</code></td><td><code>08</code> <code>0102030405060708</code></td><td>先长度（1 字节）再值</td></tr>
+    <tr><td><code>originator-system-title</code></td><td><code>08</code> <code>4D4D4D0000BC614E</code></td><td>客户端</td></tr>
+    <tr><td><code>recipient-system-title</code></td><td><code>08</code> <code>4D4D4D0000000001</code></td><td>服务端</td></tr>
+    <tr><td><code>date-time</code></td><td><code>00</code></td><td><b>长度 0 = 字段在、内容没带</b></td></tr>
+    <tr><td><code>other-information</code></td><td><code>00</code></td><td>同上</td></tr>
+    <tr><td><code>key-info</code> → optional flag</td><td><code>01</code></td><td>1 = 本帧带 key-info</td></tr>
+    <tr><td>　→ CHOICE</td><td><code>02</code></td><td><code>02</code> = <b>agreed-key</b>（现场协商）</td></tr>
+    <tr><td>　→ key-parameters</td><td><code>01</code> <code>01</code></td><td>长度 1，值 <code>0x01</code> = <b>C(1e,1s, ECC CDH)</b>，即 One-Pass DH</td></tr>
+    <tr><td>　→ key-ciphered-data</td><td><code>81 80</code> + 128 B</td><td>长形式长度（0x8180 = 128）：<b>临时公钥(64) ‖ 它的签名(64)</b></td></tr>
+    <tr><td><code>ciphered-content</code></td><td><code>81 EB</code> + 235 B</td><td>里面才是 SH ‖ 内容 ‖ tag</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>里层</b>（235 字节）就是第 2 课那套结构：</p>
+
+<pre><code>31 00000000 ‖ 218 字节密文 ‖ 9836002AEA6E7012D2ADFAA7
+│  │           │              └─ 12 字节认证 tag
+│  │           └─ GCM 输出的密文
+│  └─ IC = 0（新密钥建立时计数器归零，§9.2.7.2.4.9）
+└─ SC = 0x31 → 套件 1（低半字节）+ 认证 + 加密（bit4、bit5）</code></pre>
+
+<div class="callout trap">
+  <span class="label">两个真实存在的坑</span>
+  <p><b>① <code>00</code> 不等于"字段不存在"。</b>date-time 与 other-information 在这里是"字段存在、长度 0"。
+  按固定偏移取字段的解析器最容易在这里错位——所以这族报文必须<b>逐字段按长度推进</b>，不能算死偏移。<br>
+  <b>② <code>81 80</code> 不是数据，是长度。</b>≥128 字节的字段用长形式（<code>0x81 xx</code> / <code>0x82 xx xx</code>）。
+  把 <code>81</code> 当成第一个数据字节，后面全错。</p>
+</div>
+
+<h2><span class="num">3</span>key-info 的三种可能：报文里到底在说哪把密钥</h2>
+
+<p>§9.2.5.2 <b>Table 29</b> 把 key-info 定义成一个 CHOICE（ASN.1 见 §9.5）：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 29 · key information</caption>
+  <thead><tr><th>选择</th><th>CHOICE 值</th><th>里面装什么</th><th>什么时候用</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>identified-key</code></td><td><code>0</code></td>
+      <td><code>key-id</code>：0 = GUEK（单播），1 = GBEK（广播）</td>
+      <td>密钥两端都已持有，只是<b>指出用哪一把</b>。通用加密报文之间互传时最常用</td>
+    </tr>
+    <tr>
+      <td><code>wrapped-key</code></td><td><code>1</code></td>
+      <td><code>kek-id</code>（0 = master key）+ <code>key-ciphered-data</code></td>
+      <td><b>把随机生成的密钥用 KEK 包起来送过去</b>（RFC 3394 AES key wrap）——密钥分发</td>
+    </tr>
+    <tr>
+      <td><code>agreed-key</code></td><td><code>2</code></td>
+      <td><code>key-parameters</code> + <code>key-ciphered-data</code></td>
+      <td><b>现场协商</b>：只在这族出现，本课例子用它</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p><code>key-parameters</code> 的取值只有两个（Table 29）：</p>
+
+<pre><code>0x01 → C(1e, 1s, ECC CDH)  One-Pass Diffie-Hellman   // 一方临时密钥 + 一方静态密钥
+0x02 → C(0e, 2s, ECC CDH)  Static Unified Model       // 双方都用静态密钥（+ NonceU）</code></pre>
+
+<p>注意：<b>第三种方案 C(2e, 0s)（双方都用临时密钥）不在这张表里</b>——它是通过 <code>key_agreement</code> 方法协商主密钥/全局密钥的，不是塞在单条报文的 key-info 里（见 §9.2.3.4.6.2 与 §9.2.5.5）。</p>
+
+<h2><span class="num">4</span>三种协商方案，一张表认清</h2>
+
+<div class="table-scroll">
+<table>
+  <caption>§9.2.3.4.6 与 §9.2.5.5</caption>
+  <thead><tr><th>方案</th><th>谁用临时密钥</th><th>能协商出什么</th><th>怎么被触发</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>C(2e, 0s)</code><br>Ephemeral Unified</td>
+      <td>双方都是临时</td>
+      <td>master key / GUEK / GBEK / GAK —— <b>长期密钥</b></td>
+      <td>Security setup 的 <code>key_agreement</code> 方法</td>
+    </tr>
+    <tr>
+      <td><code>C(1e, 1s)</code><br>One-Pass DH</td>
+      <td>发起方临时，接收方静态</td>
+      <td><b>临时加密密钥</b>（保护本条/本次报文）</td>
+      <td>general-ciphering 的 key-info（<code>0x01</code>）</td>
+    </tr>
+    <tr>
+      <td><code>C(0e, 2s)</code><br>Static Unified</td>
+      <td>都不用（靠 NonceU 区分每次）</td>
+      <td><b>临时加密密钥</b></td>
+      <td>general-ciphering 的 key-info（<code>0x02</code>）</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <span class="label">规范的默认选择与一条安全警告</span>
+  <p><b>默认用哪个：</b>§9.2.5.5 逐字写着 <i>“Unless specified otherwise in a project specific companion specification, the C(1e, 1s ECC CDH) scheme shall be used.”</i>
+  ——除非项目规范另有规定，<b>就该用 One-Pass DH</b>。<br>
+  <b>为什么不用静态方案：</b>Table 24 的 NOTE 2 说得很重——<code>C(0e,2s)</code> 下 <b>Z 在所有交易中恒定不变</b>，一旦泄漏，
+  用同一对静态密钥协商出的<b>过去、现在、未来的密钥材料都可能被攻破</b>；未"零化"的 Z 必须按私钥级别保管。</p>
+</div>
+
+<h2><span class="num">5</span>动手：拆一条，再算一遍</h2>
+
+<p>拆分器现在能拆 general-* 家族了。第一个预设就是上面那条 401 字节的报文——点开它，看外层与内层是怎么分两层显示的。</p>
+
+<div class="frame-splitter" data-frame-splitter>
+  <noscript>
+    <p><b>（JavaScript 未启用）</b>读法：<code>DD</code> 之后先按「长度+值」依次读 transaction-id、两个 system title、date-time、other-information，
+    然后 key-info（1 字节 optional flag → 1 字节 CHOICE → 方案相关字段），最后是带长度的 ciphered-content，里面才是 SH ‖ 内容 ‖ tag。</p>
+  </noscript>
+</div>
+
+<p>对拍脚本也升级了：新增第 3 部分，用规范给的共享秘密 Z 复算 <b>C.2 与 C.3 两个方向共 4 个密钥</b>。<b>我实测全部一致：</b></p>
+
+<pre><code>C.2 请求方向  KDF(Z, AlgID, Sys-TC, Sys-TS) = 59A71FD8…5927659B   ✓   EK = 59A71FD81C929A86A99438DA17A66C05
+C.2 响应方向  KDF(Z, AlgID, Sys-TS, Sys-TC) = F0184BDA…298B2E14   ✓   EK = F0184BDA9466BFA4601A64A7EF46504A
+C.3 请求方向  KDF(Z, AlgID, Sys-TC, Nonce-C, Sys-TS) = 56C46B57…9E84DE7E   ✓
+C.3 响应方向  KDF(Z, AlgID, Sys-TS, Nonce-S, Sys-TC) = FC1314F7…00CD5613   ✓</code></pre>
+
+<div class="recall">
+  <h3>从这四行里读出一件事（先想再展开）</h3>
+  <details open>
+    <summary>C.2 的两个方向，Z 不同、system title 顺序还相反——为什么必须这样？</summary>
+    <p>因为 KDF 的 <code>OtherInfo = AlgorithmID ‖ PartyUInfo ‖ PartyVInfo</code>（§9.2.3.4.6.5）：<b>发起方把自己放在 PartyU、把对方放在 PartyV</b>。
+    同一对实体在两个方向上算出的密钥<b>必须不同</b>，否则双向流量会共用密钥与密钥流。<br>
+    这也是实现里最常见的错误来源：<b>把顺序写反，密钥就完全不同</b>——现象是"密钥协商成功、但对方说 tag 校验失败"。
+    我在脚本里就是靠这两条向量确认顺序的。</p>
+  </details>
+</div>
+
+<h2><span class="num">6</span>练一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q1 · general-ciphering 里 key-info 的作用是？</p>
+  <ul class="opts">
+    <li data-correct="true">指明或协商本帧密钥</li>
+    <li>指明报文的访问权限</li>
+    <li>指明报文的压缩方式</li>
+    <li>指明发起方的计数器</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>key-info 是一个 CHOICE（§9.2.5.2 Table 29）：<code>identified-key</code> 只指出用哪把已持有的全局密钥，<code>wrapped-key</code> 用 KEK 包一把新密钥送过去，<code>agreed-key</code> 现场协商。访问权限在 Association 对象里、压缩在 SC 的 bit7、计数器是 SH 里的 IC——都不是 key-info 的职责。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q2 · <code>C(0e, 2s)</code> 方案的主要安全弱点是？</p>
+  <ul class="opts">
+    <li data-correct="true">共享秘密长期不变</li>
+    <li>每次都要新密钥对</li>
+    <li>只能协商临时密钥</li>
+    <li>无法验证对端身份</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>双方都用静态密钥，所以 Z 恒定（Table 24 NOTE 2）：一旦泄漏，用同一对静态密钥派生过的<b>历史、当前与未来</b>密钥材料都可能失效。规范因此要求：除非项目规范另有规定，应优先用 <code>C(1e,1s)</code>。"每次都要新密钥对"是临时方案（C(2e,0s)）的特点，不是弱点；身份验证靠 ECDSA 证书，与用哪种 ECDH 方案无关。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q3 · general-glo-ciphering 为什么不需要 key-info？</p>
+  <ul class="opts">
+    <li data-correct="true">用已约定的全局密钥</li>
+    <li>每次都现场协商密钥</li>
+    <li>用报文头携带的密钥</li>
+    <li>完全不需要任何密钥</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>Table 47 里 key-info 一栏只有 general-ciphering 是 "+"。general-glo/ded 用的是两端<b>事先约定好的</b>全局/专用密钥（GUEK / 专用密钥），所以报文只需带上 system-title 表明身份，不需要再讨论用哪把密钥。它还是一种"轻量"选择：外层字段更少。</p>
+</div>
+
+<div class="recall">
+  <h3>闭卷三问</h3>
+  <details open>
+    <summary>1 · 不看资料，写出 general-ciphering 的外层字段顺序。</summary>
+    <p><code>Tag(0xDD)</code> → transaction-id → originator-system-title → recipient-system-title → date-time → other-information → key-info → ciphered-content。<br>
+    依据：§9.2.7.2.4.8 Figure 109 与 Table 47。<b>每个字段都是「长度 + 值」</b>，长度可能是长形式。</p>
+  </details>
+  <details open>
+    <summary>2 · 报文里出现 <code>00</code> 当作 date-time 字段，是什么意思？</summary>
+    <p>字段<b>存在</b>但长度为 <b>0</b>，即本次没有携带时间戳。解析器必须按长度推进（读 1 字节长度、再跳过 0 字节），不能把 <code>00</code> 当成"字段不存在"而少推一位，也不能按固定偏移去取后面的字段。</p>
+  </details>
+  <details open>
+    <summary>3 · <code>key-parameters</code> 的 <code>0x01</code> 与 <code>0x02</code> 分别是什么？为什么 <code>0x02</code> 需要 transaction-id？</summary>
+    <p><code>0x01</code> = <code>C(1e, 1s, ECC CDH)</code>（One-Pass DH）；<code>0x02</code> = <code>C(0e, 2s, ECC CDH)</code>（Static Unified）。<br>
+    静态方案双方的共享秘密 Z 每次都一样，所以必须靠一个每次不同的输入来区分——规范就用 <b>transaction-id 充当 NonceU</b>（§9.2.3.4.6.4 步骤 5），并把它放进 KDF 的 <code>PartyUInfo</code>。这也是为什么 <code>0x02</code> 的 <code>key-ciphered-data</code> 是空的：没有临时公钥要传。</p>
+  </details>
+</div>
+
+<h2><span class="num">7</span>主要来源与下一步</h2>
+
+<div class="callout quote">
+  <span class="label">首选一手来源</span>
+  <p>① 绿皮书 Ed.11 <b>Annex C.2</b>——本课那条 401 字节报文的完整字段标注 + 测试向量（含 Z、KDF、EK，以及请求/响应两个方向）。<br>
+  本地：<code>GreenBook\output\book\ai\channex-c-normative-use-of-key-agreement-schemes-i\markdown\…c-2-one-pass-diffie-hellman-c-1e-1s-ecc-cdh-sche.md</code><br>
+  ② <b>§9.2.7.2.4.8 / Table 47</b>（p.253–254）通用加密报文的结构与字段对照；③ <b>§9.2.5.2 Table 29</b> key-info 的三种可能；
+  ④ <b>§9.2.3.4.6.5</b> KDF 的 <code>OtherInfo</code> 组成（本课"顺序写反"那条就是它）。</p>
+</div>
+
+<ul>
+  <li>动手脚本：<a href="../assets/verify-dlms-gcm.py">assets/verify-dlms-gcm.py</a>（第 1–3 部分共 8 组规范测试向量，全部自动对拍）</li>
+  <li>交互组件：<a href="../assets/frame-splitter.js">assets/frame-splitter.js</a>（现已支持 general-* 两层结构）</li>
+  <li>速查：<a href="../reference/security-suites.html">Suite 0/1/2 速查表</a> · <a href="../reference/crypto-primer.html">密码学最小必要直觉</a></li>
+  <li>素材（带章节引证）：<code>.research\green-book-annex-extract.md</code>（Annex C 三种方案的步骤、测试向量、证书字段）</li>
+</ul>
+
+<h3>下一课的候选</h3>
+<ol>
+  <li><b>association 认证：GMAC 与四趟 HLS</b> —— mechanism 5 的 <code>SC ‖ IC ‖ GMAC(SC ‖ AK ‖ StoC)</code> 怎么算（Table 51 有测试向量，可以第三次对拍），以及规范为何把 MD5/SHA-1 标为不推荐。</li>
+  <li><b>密钥全貌</b> —— EK / AK / KEK / GUEK / GBEK / GAK 的用途与建立方式（Table 28/29），"带外预置"对应哪些运维动作，以及 <code>key_transfer</code> 的 KEK 轮换顺序。</li>
+  <li><b>Security setup 对象实操</b> —— 属性 2/3/4/5/6 与方法 1–8，怎么读/写套件与策略，version 0 与 1 的差别（这节最贴近你对接实际设备）。</li>
+</ol>
+
+<div class="ask-teacher">
+  <strong>我是你的老师，卡住就问。</strong>
+  这课的概念密度比前两课高，任何一格都可以展开：把 <code>key-info</code> 的三种选择用你的场景各走一遍、或者把你抓到的 <code>DD</code> 报文贴给我一起拆。
+  也可以直接说"下一课要哪个"。
+</div>
+
+<div class="lesson-footer">
+  <h3>本课在本课程中的位置</h3>
+  <ul>
+    <li>上一课：<a href="0002-apdu-byte-level-crypto.html">报文一级：把规范印的字节拆开，再自己算一遍</a></li>
+    <li>第 1 课：<a href="0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+  </ul>
+</div>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/frame-splitter.js"></script>
+</body>
+</html>

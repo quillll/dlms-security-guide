@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DLMS/COSEM 安全套件 · 课程首页</title>
+<link rel="stylesheet" href="assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>课程首页</span><span class="sep">·</span>
+  <span>DLMS/COSEM 安全套件与报文级加解密</span>
+</p>
+
+<h1>DLMS/COSEM 安全套件 · 课程</h1>
+
+<div class="mission-line">
+  <b>这门课为什么存在：</b>你在实现/对接 DLMS 客户端与服务端，需要读懂绿皮书/蓝皮书的原文条款，并把它们落到可运行的代码与可核对的报文上。
+  课程据此排列：<b>先把坐标系立住（套件 vs 策略 vs 材料），再下沉到字节。</b>
+  <br><span class="sidenote">完整目标与边界见 <a href="MISSION.md">MISSION.md</a>。</span>
+</div>
+
+<h2>课程（按顺序做）</h2>
+
+<div class="index-grid">
+  <div class="index-card">
+    <a href="lessons/0001-security-suites-overview.html">第 1 课 · Suite 0/1/2：先把三个旋钮分清</a>
+    <p>安全套件 ≠ 安全等级。读懂 Table 27，学会只看一个字节就说出"套件 + 保护方式"。含可点的 SC 字节解码器与 4 道检索练习。约 12 分钟。</p>
+  </div>
+  <div class="index-card">
+    <a href="lessons/0002-apdu-byte-level-crypto.html">第 2 课 · 报文一级：把规范印的字节拆开，再自己算一遍</a>
+    <p>Tag ‖ Len ‖ SH ‖ 内容 ‖ tag：读懂 Table 48 的三条真实报文，Len 的算法，P/AAD/IV 怎么拼；含可粘贴 hex 的报文拆分器与能对拍规范答案的 Python 脚本。约 18 分钟。</p>
+  </div>
+  <div class="index-card">
+    <a href="lessons/0003-general-ciphering-key-info.html">第 3 课 · general-* 家族：报文里怎么"顺便"带上一把密钥</a>
+    <p>两层结构（外层寄件信息 + 内层 SH‖内容‖tag）、key-info 的三种 CHOICE、三种密钥协商方案与规范默认选择；含能拆 general-* 的拆分器与 4 组新的对拍向量。约 16 分钟。</p>
+  </div>
+  <div class="index-card">
+    <a href="lessons/0004-association-authentication-hls-gmac.html">第 4 课 · association 认证：三个等级、四趟 HLS，与能算出来的 GMAC</a>
+    <p>建链时怎么认身份。三种认证等级的对照、四趟 HLS 各自装在哪条报文、Table 50 的七种 mechanism（含为何不推荐 MD5/SHA-1），以及 Table 51 两条 GMAC 向量的实测对拍。约 18 分钟。</p>
+  </div>
+  <div class="index-card">
+    <a href="lessons/0005-keys-overview-and-kek-rotation.html">第 5 课 · 密钥全貌：六把对称密钥从哪来，KEK 为什么要"自己包自己"</a>
+    <p>EK / AK / KEK / GUEK / GBEK / GAK 一次理清（Table 28）、三条建立路径（带外 / 包装 / 协商）、<code>key_transfer</code> 的参数结构，以及 KEK 轮换为什么要"用旧 KEK 包新 KEK、成功后立即生效"。约 17 分钟。</p>
+  </div>
+  <div class="index-card">
+    <a href="lessons/0006-security-setup-object-in-practice.html">第 6 课 · Security setup 实操：读哪几个属性，调哪几个方法</a>
+    <p>把前五课落到设备对象上。OBIS 与"一个 AA 一个"、属性 2 <code>security_policy</code> 位图与属性 3 <code>security_suite</code> 枚举、方法 1–8，以及 <code>security_activate</code> 为何只能加强不能削弱。含对接新设备的排障清单。约 16 分钟。</p>
+  </div>
+</div>
+
+<h2>参考文档（回头查，不用顺序读）</h2>
+
+<div class="index-grid">
+  <div class="index-card">
+    <a href="reference/security-suites.html">Suite 0/1/2 速查表</a>
+    <p>Table 27 逐字对照、EK/KEK/tag/IV 尺寸、SC 字节位图、P/AAD 规则、套件与计数器对象配在哪里，以及四个最常见的混淆点。打印友好。</p>
+  </div>
+  <div class="index-card">
+    <a href="reference/crypto-primer.html">密码学最小必要直觉</a>
+    <p>AES-GCM、AES key wrap、ECDH、ECDSA、SHA 各一段直觉 + "在 DLMS 里做什么" + 权威来源。只为读懂套件表而写。</p>
+  </div>
+  <div class="index-card">
+    <a href="assets/verify-dlms-gcm.py">对拍脚本 · verify-dlms-gcm.py</a>
+    <p>用普通 AES-GCM 原语复现规范印着的字节：Table 48 的三条报文、Annex C.1 的 KDF、C.2/C.3 四个方向的派生密钥，以及 Table 51 的两条 HLS GMAC 认证值——共 <b>10 组</b>，全部自动比对。改几个常量就能验你自己的实现。</p>
+  </div>
+  <div class="index-card">
+    <b>↓ 计划中 · 术语表（GLOSSARY）</b>
+    <p>套件、安全策略、访问权限、安全上下文、EK/AK/KEK、SC、IC、AAD、tag、system title、AA、HLS… 全课程统一口径。</p>
+  </div>
+</div>
+
+<h2>怎么用这门课</h2>
+<ol>
+  <li><b>每课只做一件事</b>，10–15 分钟能做完。做不完就停，下次继续——课程不追求覆盖面，追求"能取用"。</li>
+  <li><b>先读一手来源再做题。</b>每课都给出绿皮书的具体章节与页码；遇到与课程叙述不一致时，<b>以规范为准</b>，并告诉我，我会改。</li>
+  <li><b>测验要闭卷。</b>答错比答对有价值：它标出了你下一次会踩的坑。</li>
+  <li><b>卡住立刻问。</b>每课末尾都有入口；你可以直接把一段 hex 报文、一段配置或一段代码贴给我，我们逐字段过。</li>
+</ol>
+
+<h2>工作区文件</h2>
+<ul>
+  <li><a href="MISSION.md">MISSION.md</a> — 学习目标与边界（每课的取舍依据）</li>
+  <li><a href="RESOURCES.md">RESOURCES.md</a> — 知识与社区资源清单（含本地规范/实现的位置与用途）</li>
+  <li><a href="NOTES.md">NOTES.md</a> — 你的偏好与我的教学备忘</li>
+  <li><code>learning-records/</code> — 已确认掌握/更正的内容（决定下一课的起点）</li>
+  <li><code>.research/</code> — 从绿皮书与 Gurux 实现中抽取的带引证原始事实（课程的"素材库"，非课程产物）</li>
+</ul>
+
+<div class="ask-teacher">
+  <strong>想换方向？</strong>
+  六课已覆盖从坐标系（套件 vs 策略 vs 材料）到设备对象（Security setup）的完整链路。
+  如果接下来真正卡住你的是抓包、是某型号表计的配置、还是代码里的某段实现，直接说——课程顺序为你让路，但目标文档会同步更新。
+</div>
+
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>参考 · AES-GCM / ECDH / ECDSA 最小必要直觉</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>参考文档</span><span class="sep">·</span>
+  <span>密码学最小必要集</span><span class="sep">·</span>
+  <span>按需查阅</span>
+</p>
+
+<h1>读懂套件表所需的密码学直觉</h1>
+
+<div class="mission-line">
+  这份文档不是密码学教程，而是<b>刚好够读懂 Table 27</b> 的那一层直觉。<b>卡住不要硬背：先读完每节的第一句话和"在 DLMS 里做什么"，其余跳过；用到再回来。</b>
+</div>
+
+<h2><span class="num">1</span>AES-GCM：一个操作，同时给你"看不懂"和"改不了"</h2>
+
+<div class="flow">
+  <div class="step"><b>输入</b><span>密钥 EK · 明文 P · 附加数据 AAD · 随机数 IV</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>AES-GCM</b><span>计数器模式加密 + GHASH 认证</span></div>
+  <div class="arrow">→</div>
+  <div class="step"><b>输出</b><span>密文 + 96 bit 认证标签 tag</span></div>
+</div>
+
+<p><b>一句话直觉：</b>AES-GCM 是"流式加密"和"校验和"的组合拳——加密让内容看不懂，标签让内容改不了；标签同时覆盖明文和 AAD，所以任何一处被改，验证就失败。</p>
+
+<table>
+  <thead><tr><th>概念</th><th>含义</th><th>在 DLMS 里做什么</th></tr></thead>
+  <tbody>
+    <tr><td>IV / nonce</td><td>一次性随机数，<b>同一密钥下绝不能重复</b></td><td>8 字节 system title + 4 字节调用计数器 IC（§9.2.3.3.7.3）</td></tr>
+    <tr><td>AAD</td><td>不加密、但参与完整性校验的数据</td><td>承载 <code>SC ‖ AK</code> 等字段（Table 46）；认证密钥 AK 就是靠它参与保护的</td></tr>
+    <tr><td>tag</td><td>96 bit 认证标签，附在报文尾部</td><td>只有在 A 位为 1 时才计算并携带</td></tr>
+    <tr><td>密钥</td><td>GCM 只有一个分组密钥</td><td>DLMS 叫它加密密钥 EK；AK 不是 GCM 的密钥，而是进 AAD 的材料</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <span class="label">最值得记住的一条</span>
+  <p><b>同一密钥下 IV 重复 = GCM 安全性崩塌。</b>这就是为什么规范要为每个 EK 维护两个调用计数器（一个用于加密、一个用于解密），规定建立密钥时计数器归零、加密后自增 1、解密时校验"必须不小于最低可接受值"（§9.2.3.3.7.3）。你在代码里看到"计数器没存盘 / 重启后归零"，那是真问题，不是洁癖。</p>
+</div>
+
+<p><b>权威来源：</b><a href="https://csrc.nist.gov/pubs/sp/800/38d/final">NIST SP 800-38D</a>（GCM 定义；绿皮书 §9.2.3.3.7.1 明确引用它）。入门读物：<a href="https://www.crypto101.io/">Crypto 101</a>。</p>
+
+<h2><span class="num">2</span>AES key wrap：专门用来"包装密钥"的算法</h2>
+
+<p><b>一句话直觉：</b>把一把密钥当作数据，用另一把密钥（KEK）把它裹起来，得到一个更长的密文；解开需要同一把 KEK。它比用 GCM 加密密钥更合适，因为它专为"被包装的东西本身就是密钥"设计，且带完整性保护。</p>
+
+<ul>
+  <li>DLMS 选用 <b>RFC 3394</b> 的 AES key wrap，按 64 bit 分块；n 个明文块 → (n+1) 个密文块（§9.2.3.3.8）。</li>
+  <li><b>在 DLMS 里做什么：</b>把新主密钥、全局密钥（GUEK/GBEK/GAK）从一端送到另一端；KEK 就是"主密钥"（§9.2.5.1 / Table 28）。</li>
+  <li>KEK 长度随套件：Suite 0/1 → 128 bit；Suite 2 → 256 bit。</li>
+</ul>
+
+<h2><span class="num">3</span>ECDH：双方各自算，算出同一个秘密</h2>
+
+<p><b>一句话直觉：</b>双方各有一对密钥（私钥保密、公钥可公开）。把自己的私钥和对方的公钥一算，两边得到同一个共享秘密——而链路上只传过公钥，偷听者算不出来。这就是"密钥协商"。</p>
+
+<p>DLMS 规定了三种方案（§9.2.3.4.6，绿皮书附录 C 有完整步骤），差别只在<b>谁用临时密钥、谁用长期密钥</b>：</p>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>方案</th><th>规范记法</th><th>直觉</th></tr></thead>
+  <tbody>
+    <tr><td>Ephemeral Unified Model</td><td><code>C(2e, 0s, ECC CDH)</code></td><td>双方都用临时密钥：前向保密最好，代价是每次都要新密钥对</td></tr>
+    <tr><td>One-Pass Diffie-Hellman</td><td><code>C(1e, 1s, ECC CDH)</code></td><td>一方临时、一方长期：一次往返就能协商</td></tr>
+    <tr><td>Static Unified Model</td><td><code>C(0e, 2s, ECC CDH)</code></td><td>双方都用长期密钥：不需要额外往返，但没有前向保密</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>协商出的共享秘密不直接用，要先经过 <b>KDF</b> 派生（§9.2.3.4.6.5 采用 NIST 拼接 KDF）。规范另外规定：<b>密钥派生一次只交付一把、用途单一的密钥</b>，算法标识见 Table 26（§9.2.3.4.6.5 末）。</p>
+
+<div class="callout">
+  <span class="label">关键推论</span>
+  <p><b>Suite 0 的 Key agreement 一栏是 “–”</b>：它没有 ECDH。所以 Suite 0 场景下密钥只能带外预置（出厂灌装、现场配置）或用已有 KEK 包装。这决定了整个系统的密钥运维方式——也是"很多表用 Suite 0"的真正原因。</p>
+</div>
+
+<h2><span class="num">4</span>ECDSA：私钥签名，公钥验证</h2>
+
+<p><b>一句话直觉：</b>用私钥对一段数据生成签名，任何人拿公钥都能验证"这确实是私钥持有者签的，且数据没被改"。与 ECDH 的区别：ECDH 用来<b>协商出秘密</b>，ECDSA 用来<b>证明身份/数据来源</b>。</p>
+
+<ul>
+  <li>曲线随套件：Suite 1 → <b>P-256</b>；Suite 2 → <b>P-384</b>（Table 27）。</li>
+  <li><b>在 DLMS 里做什么：</b>高安全等级的 association 认证（证明客户端身份）、以及 digitally signed request/response（security policy / access rights 的 bit 4 与 bit 7）。</li>
+  <li>公钥要可信，就得有证书：这就是蓝皮书的证书相关接口类与绿皮书 §9.2.6 存在的理由。</li>
+</ul>
+
+<p><b>权威来源：</b><a href="https://csrc.nist.gov/pubs/fips/186-5/final">FIPS 186-5</a>（ECDSA）、<a href="https://csrc.nist.gov/pubs/sp/800/56/a/r3/final">NIST SP 800-56A</a>（ECDH）。</p>
+
+<h2><span class="num">5</span>SHA-256 / SHA-384：哈希</h2>
+
+<p><b>一句话直觉：</b>把任意长度的数据压成固定长度的"指纹"，改一个 bit 指纹就全变。它不保密，只用于摘要与派生。</p>
+
+<ul>
+  <li>Suite 0 <b>没有</b>规定哈希；Suite 1 → SHA-256；Suite 2 → SHA-384（Table 27）。</li>
+  <li>用在哪：ECDSA 签名时的摘要、ECDH 共享秘密的 KDF（§9.2.3.4.6.5 规定每一步只派生一把用途单一的密钥，算法标识见 Table 26）。</li>
+</ul>
+
+<div class="callout warn">
+  <span class="label">一条别想当然</span>
+  <p>“从主密钥派生出加密密钥 EK 与认证密钥 AK”这种做法在实现里很常见，但<b>绿皮书 §9.2 的这份文本并没有给出 EK/AK 的派生公式</b>（本章只规定密钥的长度与用途）。如果你看到某个规范或代码声称在派生，先确认它依据的是哪一版、哪一节——这正是"读到引用再相信"的练习素材。</p>
+</div>
+
+<h2><span class="num">6</span>把五个原语放回套件表</h2>
+
+<div class="table-scroll">
+<table class="suite-table">
+  <thead><tr><th>能力</th><th class="s0">Suite 0</th><th class="s1">Suite 1</th><th class="s2">Suite 2</th></tr></thead>
+  <tbody>
+    <tr><td>加密 + 认证报文</td><td>AES-GCM-128</td><td>AES-GCM-128</td><td>AES-GCM-256</td></tr>
+    <tr><td>协议内协商密钥</td><td>无</td><td>ECDH P-256</td><td>ECDH P-384</td></tr>
+    <tr><td>数字签名 / 证书认证</td><td>无</td><td>ECDSA P-256</td><td>ECDSA P-384</td></tr>
+    <tr><td>哈希</td><td>无</td><td>SHA-256</td><td>SHA-384</td></tr>
+    <tr><td>密钥包装</td><td>AES-128</td><td>AES-128</td><td>AES-256</td></tr>
+    <tr><td>压缩</td><td>无</td><td>V.44</td><td>V.44</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p class="sidenote">上表的每一格都可在 <a href="security-suites.html">安全套件速查</a> 中找到带章节号的出处。</p>
+
+<div class="ask-teacher">
+  <strong>卡住就问。</strong>
+  你可以直接问我："GCM 的 tag 为什么能同时保护 AAD 和明文？"、"P-256 比 P-384 弱多少、够不够用？"、"为什么 Suite 0 里还有 KEK 却没有 ECDH？"——这类问题用一两段话就能讲透，比硬啃 NIST 文档快得多。
+</div>
+
+<div class="lesson-footer">
+  <h3>相关</h3>
+  <ul>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+    <li>套件速查：<a href="security-suites.html">Suite 0/1/2 速查表</a></li>
+    <li>第 1 课：<a href="../lessons/0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+  </ul>
+</div>
+
+</body>
+</html>

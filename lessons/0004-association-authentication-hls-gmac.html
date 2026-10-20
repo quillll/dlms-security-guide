@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 4 课 · association 认证：三个等级、四趟 HLS，与能算出来的 GMAC</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>第 4 课</span><span class="sep">·</span>
+  <span>约 18 分钟</span><span class="sep">·</span>
+  <span>前置：第 1、2 课</span><span class="sep">·</span>
+  <span>产出：能算一条 GMAC 认证值，能说出四趟 HLS 谁给谁发什么</span>
+</p>
+
+<h1>association 认证：三个等级、四趟 HLS，与能算出来的 GMAC</h1>
+
+<div class="mission-line">
+  <b>为什么学这个：</b>前两课处理的都是<b>报文</b>（Phase 2 的数据交换）。但建链时还有个更基本的问题——
+  <b>对面到底是不是那台表？</b>这就是 association 建立（AA）阶段的"认证"（Phase 1）。
+  抓包里 <code>AARQ</code> 里带着一段挑战值、后面又跟着 <code>reply_to_HLS_authentication</code> 的方法调用，就是这一课的内容。
+</div>
+
+<div class="callout key">
+  <span class="label">本课唯一要带走的一句话</span>
+  <p><b>认证（authentication）与加密（ciphering）是两件正交的事。</b>
+  认证解决"你是谁"，发生在 AA 建立阶段、由 COSEM-OPEN 服务与 <code>reply_to_HLS_authentication</code> 方法承载；
+  加密解决"别人看不看得见"，发生在 Phase 2 的报文里。
+  规范 §9.2.2.2.2.1 原文：<i>“Even in the case where no client-server authentication takes place, cryptographically protected APDUs can be used.”</i>
+  ——没有认证，照样可以用受保护的报文；反过来，认证过了也不等于后面的报文会加密。</p>
+</div>
+
+<h2><span class="num">1</span>三个认证等级：先立坐标系</h2>
+
+<p>§9.2.2.2.2.1 把认证分成<b>三个等级</b>。注意"等级"这个词：它们不是套件（Suite 0/1/2），也不是安全策略位图，而是 AA 建立时<b>用什么手段证明身份</b>。</p>
+
+<div class="table-scroll">
+<table>
+  <caption>§9.2.2.2.2 · 三种 authentication security level（§9.4.2.2.3 Table 83 给出 mechanism_id）</caption>
+  <thead><tr><th>等级</th><th>怎么做</th><th>几个来回</th><th>mechanism_id</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>no security</b><br>(Lowest Level Security)</td>
+      <td>不认证。客户端可在当前 AA 的安全上下文与访问权限内读一些基本信息</td>
+      <td>—</td>
+      <td><code>0</code></td>
+    </tr>
+    <tr>
+      <td><b>LLS</b><br>(Low Level Security)</td>
+      <td>客户端把<b>口令</b>（secret）交给服务端，服务端比对</td>
+      <td>1 趟（口令随 <code>AARQ</code> 走）</td>
+      <td><code>1</code></td>
+    </tr>
+    <tr>
+      <td><b>HLS</b><br>(High Level Security)</td>
+      <td>双方各发一个<b>挑战值</b>、各自对对方的挑战做密码学处理，<b>互相</b>验证</td>
+      <td><b>4 趟</b></td>
+      <td><code>2…7</code></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>关键差别：</b>LLS 是<b>单向</b>的——只有服务端验客户端（对应 ITU-T X.811 的 "unilateral authentication, class 0"）；
+HLS 是<b>双向</b>的——双方都要成功验证对方，AA 才建立（X.811 的 "mutual authentication using challenge mechanisms"）。这条出处是 §9.2.2.2.2.1 的 NOTE 1 与 NOTE 2。</p>
+
+<div class="callout warn">
+  <span class="label">为什么 HLS 值得多花三趟</span>
+  <p>LLS 的口令一旦被抓包就永久失守（而且口令是静态的）。HLS 每趟交换的都是<b>随机挑战值</b>，
+  每次建链都不一样——所以抓到的历史报文对攻击者没用。这是"HLS 比 LLS 高级"的实质，而不只是"加密更强"。</p>
+</div>
+
+<h2><span class="num">2</span>四趟 HLS：谁在第几趟发什么</h2>
+
+<p>§9.2.2.2.2.4 逐字规定了四趟。这张图是本课的骨架——把每条报文归到哪一趟、装在哪，都写清楚了：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>§9.2.2.2.2.4 · HLS 四趟（Table 50 的 "Carried by" 行给出承载 APDU）</caption>
+  <thead><tr><th>趟</th><th>方向</th><th>带什么</th><th>装在哪个 APDU 里</th></tr></thead>
+  <tbody>
+    <tr><td><b>Pass 1</b></td><td>客户端 → 服务端</td><td>挑战值 <code>CtoS</code>（+ 视机制而定的附加信息）</td><td><code>AARQ</code>（COSEM-OPEN.request）</td></tr>
+    <tr><td><b>Pass 2</b></td><td>服务端 → 客户端</td><td>挑战值 <code>StoC</code>（+ 附加信息）</td><td><code>AARE</code>（COSEM-OPEN.response）</td></tr>
+    <tr><td><b>Pass 3</b></td><td>客户端 → 服务端</td><td>处理结果 <code>f(StoC)</code></td><td>调用 <code>reply_to_HLS_authentication</code> 方法（xx.request）</td></tr>
+    <tr><td><b>Pass 4</b></td><td>服务端 → 客户端</td><td>处理结果 <code>f(CtoS)</code></td><td>该方法的返回（xx.response）</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout trap">
+  <span class="label">一条必须实现的检查（否则是漏洞）</span>
+  <p>§9.2.2.2.2.4 原文：<i>“If StoC is the same as CtoS, the client shall reject it and shall abort the AA establishment process.”</i><br>
+  ——<b>若服务端回的 StoC 与客户端发的 CtoS 相同，客户端必须拒绝并中止 AA。</b>
+  为什么？因为挑战值必须是对方<b>新生成</b>的随机数；如果它反弹回来，说明对面根本没生成随机数（可能在重放），
+  双向认证就退化成"我给自己的值签名再验一遍"，毫无意义。</p>
+</div>
+
+<p>规范的 Pass 2 与 Pass 3 之间还有一句容易被忽略的：<b>Pass 2 之后，服务端才授权客户端访问 <code>reply_to_HLS_authentication</code> 方法</b>（§9.2.2.2.2.4）。
+也就是说第 3、4 趟本身是在"部分建立的 AA"里跑的——这也是为什么这两个方法调用可能已经被加密保护。</p>
+
+<h2><span class="num">3</span>七个 mechanism：同一套四趟，换的是 f() 怎么算</h2>
+
+<p>四趟的<b>流程</b>固定，变的是处理挑战的函数 <code>f</code>。§9.2.7.4 <b>Table 50</b> 给出全部七种，名字由 §9.4.2.2.3 的 <b>Table 83</b> 定义：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 50（§9.2.7.4, p.260–261）与 Table 83（§9.4.2.2.3, p.313）</caption>
+  <thead><tr><th>id</th><th>名字</th><th>f(StoC) / f(CtoS)</th><th>评价</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>2</code></td><td>HLS（厂商自定）</td>
+      <td>规范保密（"Man. Spec."）</td>
+      <td>方法不公开。NOTE 1：处理方式<b>保密</b></td>
+    </tr>
+    <tr>
+      <td><code>3</code></td><td>HLS MD5</td>
+      <td><code>MD5(StoC ‖ HLS Secret)</code></td>
+      <td rowspan="2"><b>规范明确不推荐新实现使用</b><br>（Table 50 脚注 1）</td>
+    </tr>
+    <tr>
+      <td><code>4</code></td><td>HLS SHA-1</td>
+      <td><code>SHA-1(CtoS ‖ HLS Secret)</code></td>
+    </tr>
+    <tr>
+      <td><code>5</code></td><td><b>HLS GMAC</b></td>
+      <td><code>SC ‖ IC ‖ GMAC(SC ‖ AK ‖ StoC)</code></td>
+      <td rowspan="2">推荐路线：用已有的套件材料（AK / 证书）</td>
+    </tr>
+    <tr>
+      <td><code>6</code></td><td>HLS SHA-256</td>
+      <td><code>SHA-256(HLS_Secret ‖ SysT-C ‖ SysT-S ‖ StoC ‖ CtoS)</code></td>
+    </tr>
+    <tr>
+      <td><code>7</code></td><td>HLS ECDSA</td>
+      <td><code>ECDSA(SysT-C ‖ SysT-S ‖ StoC ‖ CtoS)</code></td>
+      <td>用签名私钥，不对称——验签不需对方保密材料</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <span class="label">三条读表要点</span>
+  <p><b>① 3 与 4 不要用。</b>Table 50 脚注 1 原文：<i>“The use of authentication mechanisms 3 and 4 are not recommended for new implementations.”</i>
+  MD5 / SHA-1 早已不安全。看到老设备用它们，属于遗留兼容，不要照抄到新实现。<br>
+  <b>② mechanism 6 与 7 的输入串顺序是"先自己、后对方"。</b><code>SysT-C ‖ SysT-S</code> 是客户端方向；
+  响应方向而是 <code>SysT-S ‖ SysT-C</code>（Table 50 的两列就是反的）。这里写反了，现象就是"签名/哈希验不过"。<br>
+  <b>③ mechanism 5（GMAC）的 IV 规范没在 Table 50 里写。</b>它是靠 Table 51 的例子反推的——见下面第 4 节，这是本课最"动手"的一段。</p>
+</div>
+
+<h2><span class="num">4</span>动手：把 Table 51 的两条 GMAC 算出来</h2>
+
+<p>Table 51 给了 mechanism 5 的<b>完整测试向量</b>——这是本课程第三次"自带标准答案"的机会（前两次是 Table 48 与 Annex C）。我用普通 AES-GCM 原语独立复算，<b>两条都对上了</b>：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 51（§9.2.7.4, p.261）逐字 + 我的复算结果</caption>
+  <thead><tr><th>量</th><th>规范值</th><th>怎么算的</th></tr></thead>
+  <tbody>
+    <tr><td>套件</td><td><code>GCM-AES-128</code></td><td>即 Suite 0；SC byte = <code>10</code>（仅认证：A=1, E=0）</td></tr>
+    <tr><td>SysT 客户端 / 服务端</td><td><code>4D4D4D0000000001</code> / <code>4D4D4D0000BC614E</code></td><td>注意与 Table 48 的角色正好<b>互换</b></td></tr>
+    <tr><td>IC 客户端 / 服务端</td><td><code>00000001</code> / <code>01234567</code></td><td>4 字节</td></tr>
+    <tr><td>AK</td><td><code>D0D1…DEDF</code></td><td>同上两课的那把认证密钥</td></tr>
+    <tr><td>CtoS</td><td><code>4B35366956616759</code></td><td>"K56iVagY"（8 字节随机串）</td></tr>
+    <tr><td>StoC</td><td><code>503677524A323146</code></td><td>"P6wRJ21F"</td></tr>
+    <tr><td><b>f(StoC)</b> = <code>SC ‖ IC ‖ T</code></td><td><code>10000000011A52FE7DD3E72748973C1E28</code></td><td>T = <code>1A52FE7DD3E72748973C1E28</code> ✓（我算出的一致）</td></tr>
+    <tr><td><b>f(CtoS)</b> = <code>SC ‖ IC ‖ T</code></td><td><code>1001234567FE1466AFB3DBCD4F9389E2B7</code></td><td>T = <code>FE1466AFB3DBCD4F9389E2B7</code> ✓（我算出的一致）</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>怎么算的（这正是第 1 课"仅认证"那一档）：</b></p>
+
+<pre><code>AAD = SC ‖ AK ‖ 挑战值       ← 被认证的明文字节
+P   = （空）                  ← 没有任何东西被加密
+T   = GMAC(AAD) 截前 12 字节  ← tag = 96 bit
+f   = SC ‖ IC ‖ T             ← 17 字节，SC 与 IC 明文照带</code></pre>
+
+<div class="callout key">
+  <span class="label">复算中我自己踩到的坑（值得你知道）</span>
+  <p>我一开始以为 IV 用的是<b>发出挑战的一方</b>的 system title——算出来两条都对不上。
+  枚举之后才确定：<b>IV 用的是"算这一趟的那一方"（本端）的 <code>Sys-T ‖ IC</code></b>。<br>
+  客户端算 <code>f(StoC)</code> → 用<b>客户端</b>的 <code>Sys-T ‖ IC</code>，得到 <code>4D4D4D000000000100000001</code>，IC 是客户端自己的 <code>00000001</code>；
+  服务端算 <code>f(CtoS)</code> → 用<b>服务端</b>的 <code>Sys-T ‖ IC</code>，IC 是 <code>01234567</code>。<br>
+  这与我最初"用挑战发起方"的直觉正好相反。怎么才能自己发现？看 Table 51 里 <code>f(x)</code> 的封装：
+  <code>f(StoC) = 10 <b>00000001</b> …</code>、<code>f(CtoS) = 10 <b>01234567</b> …</code>——IC 直接印在那里，正好是各自的本端计数器。
+  <b>这就是"自带标准答案"的价值</b>：猜错了立刻被向量驳回。</p>
+</div>
+
+<div class="callout warn">
+  <span class="label">这里有一个规范没写清的空白（诚实标注）</span>
+  <p>Table 50 只写了 f 的<b>输出形式</b> <code>SC ‖ IC ‖ T</code>，<b>没写</b>这个 IC 取自哪里、按什么规则递增；
+  IV 的构造在 §9.2.7.4 里也没有像 §9.2.3.3.7.3（ciphering 报文）那样明说。
+  上面的结论是我<b>从 Table 51 的例子反推</b>的（虽然两条向量高度一致，可信度高），<b>不是规范明文</b>。
+  实现侧还多一层：Gurux 有个 <code>IncreaseInvocationCounterForGMacAuthentication</code> 开关（默认 <code>true</code>），
+  意味着"算 GMAC 时要不要顺便把计数器加一"在实现之间可能不一致。<b>对接具体设备时，这一条必须实测，别照抄任何一方。</b></p>
+</div>
+
+<p>把它跑给自己看：</p>
+
+<pre><code>cd D:\project\personal\teach-me\dlms
+chcp 65001
+python assets\verify-dlms-gcm.py</code></pre>
+
+<p>脚本现在有 <b>第 4 部分</b>（HLS GMAC），加上前三部分共 <b>10 组</b>规范向量，应全部打印 ✓。</p>
+
+<h2><span class="num">5</span>挑战值被打包在哪里：APDU 与"附带信息"</h2>
+
+<p>挑战值不是裸的随机数——它还可能需要附带 system title、证书。载体是两个看起来不相关、其实专门为此准备的字段（§9.4.4.1）：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>§9.4.4.1 · AARQ / AARE 里与安全相关的字段</caption>
+  <thead><tr><th>字段</th><th>装什么</th><th>在哪个 APDU</th></tr></thead>
+  <tbody>
+    <tr><td><code>calling-AP-title</code></td><td>客户端的 <b>system title</b>（用了 ciphering 时必须带）</td><td>AARQ</td></tr>
+    <tr><td><code>calling-AE-qualifier</code></td><td>客户端数字签名密钥的<b>公钥证书</b></td><td>AARQ</td></tr>
+    <tr><td><code>responding-AP-title</code></td><td>服务端的 system title</td><td>AARE</td></tr>
+    <tr><td><code>responding-AE-qualifier</code></td><td>服务端的公钥证书</td><td>AARE</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Table 50 的 NOTE 说得很清楚：<i>“The system titles and the Certificates have to be sent only if not already known by the other party.”</i>
+——<b>已知道就不用再发</b>（比如以前在注册流程里发过）。但如果对方<b>没有</b>这些材料，挑战就处理不了，§9.2.7.4 原文：<i>“the result of the processing of the challenge fails and the AA shall not be established.”</i></p>
+
+<p>另外，机制 7（ECDSA）的挑战值长度是 <b>32–64 字节</b>，而 2–6 是 <b>8–64 字节</b>（Table 50 的 Pass 1/2 列）。ECDSA 需要签名，长度要求自然更硬。</p>
+
+<h2><span class="num">6</span>练一下</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q1 · 关于"认证"与"加密"的关系，哪一句正确？</p>
+  <ul class="opts">
+    <li data-correct="true">两者互相独立，可分别启用</li>
+    <li>认证成功即报文自动加密</li>
+    <li>加密后无需再做认证</li>
+    <li>两者必须同时启用或同时关闭</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>§9.2.2.2.2.1 原文明确两者独立：认证在 Phase 1（AA 建立），加密在 Phase 2（报文）；"Even in the case where no client-server authentication takes place, cryptographically protected APDUs can be used." 所以既可能"认证了但报文明文"，也可能"没认证但报文加密"。把两者绑在一起理解，会在配置安全策略时踩坑。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q2 · 服务端回的 StoC 与客户端发的 CtoS 一模一样，客户端应该怎么做？</p>
+  <ul class="opts">
+    <li data-correct="true">拒绝并中止 AA 建立</li>
+    <li>照常计算并回送结果</li>
+    <li>把挑战值加一再计算</li>
+    <li>改用 LLS 口令继续</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>§9.2.2.2.2.4 的硬规定："If StoC is the same as CtoS, the client shall reject it and shall abort the AA establishment process." 原因：挑战值必须是对方新生成的随机数。若它是把客户端自己的值原样弹回，双向认证就名存实亡——你只是在验自己发的值，任何人都能这么做。这是防重放的关键一步。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q3 · mechanism 5（HLS GMAC）里，<code>T = GMAC(SC ‖ AK ‖ StoC)</code> 用的是什么 IV？</p>
+  <ul class="opts">
+    <li data-correct="true">计算方自己的 Sys-T ‖ IC</li>
+    <li>发起方（客户端）的 system title</li>
+    <li>被认证内容的哈希前 12 字节</li>
+    <li>不使用 IV，GMAC 无需 IV</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>本课第 4 节的复算结论：客户端算 f(StoC) 用客户端的 <code>Sys-T ‖ IC</code>，服务端算 f(CtoS) 用服务端的。我从 Table 51 的两条向量反推、枚举验证过（IV 用错则两条都对不上）。<b>但要注意</b>：规范 §9.2.7.4 没有像 §9.2.3.3.7.3 那样明写这条，IC 的递增规则也未规定——所以我把它标为"反推 + 实测为准"。GMAC 和所有 GCM 一样是需要 IV 的，"不需要 IV"是错的。</p>
+</div>
+
+<div class="recall">
+  <h3>闭卷三问</h3>
+  <details open>
+    <summary>1 · 不看资料，写出 HLS 四趟的方向与承载 APDU。</summary>
+    <p>Pass 1 客户端→服务端，<code>CtoS</code>，装在 <code>AARQ</code>；Pass 2 服务端→客户端，<code>StoC</code>，装在 <code>AARE</code>；
+    Pass 3 客户端→服务端，<code>f(StoC)</code>，装在 <code>reply_to_HLS_authentication</code> 方法调用；Pass 4 服务端→客户端，<code>f(CtoS)</code>，是该方法的返回。<br>
+    依据：§9.2.2.2.2.4 与 Table 50 的 "Carried by" 行。</p>
+  </details>
+  <details open>
+    <summary>2 · mechanism 6（SHA-256）与 mechanism 7（ECDSA）的输入串，两个方向为什么不同？</summary>
+    <p>因为它们是<b>不对称</b>的：谁在算，就要把自己放前面。<br>
+    <code>f(StoC)</code>（客户端算）：<code>SysT-C ‖ SysT-S ‖ StoC ‖ CtoS</code>；<code>f(CtoS)</code>（服务端算）：<code>SysT-S ‖ SysT-C ‖ CtoS ‖ StoC</code>——<b>两个方向连挑战值的顺序也反过来</b>。<br>
+    这样两趟算出的结果必然不同，无法把一个方向的结果挪用到另一个方向。依据：Table 50。</p>
+  </details>
+  <details open>
+    <summary>3 · 为什么规范说 MD5 / SHA-1 两套 mechanism "不推荐"？</summary>
+    <p>Table 50 脚注 1：<i>"The use of authentication mechanisms 3 and 4 are not recommended for new implementations."</i>
+    MD5 与 SHA-1 都已存在实际可行的碰撞攻击，且它们只做简单哈希、不像 GMAC/ECDSA 那样基于当前套件的密钥材料。老设备可能有，新实现应选 5/6/7。</p>
+  </details>
+</div>
+
+<h2><span class="num">7</span>主要来源与下一步</h2>
+
+<div class="callout quote">
+  <span class="label">首选一手来源</span>
+  <p>① <b>§9.2.2.2.2</b>（p.205–207）——三种认证等级与四趟 HLS 的定义（<code>ch9-9-2-…md</code>）；<br>
+  ② <b>§9.2.7.4 Table 50 / Table 51</b>（p.260–261）——七种 mechanism 的计算式，以及本课复算用的 GMAC 测试向量；<br>
+  ③ <b>§9.4.2.2.3 Table 83</b>（p.313）——mechanism_id 0…7 的正式名字；<br>
+  ④ <b>§9.4.4.1</b>——<code>calling-AP-title</code> / <code>calling-AE-qualifier</code> 等字段的用途。</p>
+</div>
+
+<ul>
+  <li>动手脚本：<a href="../assets/verify-dlms-gcm.py">assets/verify-dlms-gcm.py</a>（现为 4 部分 · 10 组向量，含本课的 HLS GMAC 两组）</li>
+  <li>速查：<a href="../reference/security-suites.html">Suite 0/1/2 速查表</a> · <a href="../reference/crypto-primer.html">密码学最小必要直觉</a></li>
+  <li>素材（带章节引证）：<code>.research\green-book-security-extract.md</code>（Table 50/51 原文与 GMAC 向量）</li>
+  <li>代码线索：Gurux 的 <code>GXSecure.cs</code> 里有 <code>IncreaseInvocationCounterForGMacAuthentication</code> 开关——本课"IC 递增规则未定"那条的实现侧证据</li>
+</ul>
+
+<h3>下一课的候选</h3>
+<ol>
+  <li><b>密钥全貌与 KEK 轮换</b> —— EK / AK / KEK / GUEK / GBEK / GAK 各是什么、怎么建立（带外预置 / 分发 / 协商三条路），以及 <code>key_transfer</code> 为什么必须"用旧 KEK 包新 KEK"。</li>
+  <li><b>Security setup 对象实操</b> —— 属性 2/3/4/5/6 与方法 1–8，怎么读/写套件与策略（这节最贴近你对接实际设备）。</li>
+</ol>
+
+<div class="ask-teacher">
+  <strong>我是你的老师，卡住就问。</strong>
+  第 4 节那个"IV 用哪一端的 system title"是整个安全章节里少数需要靠反推确认的点——如果你手上有真实设备的 HLS 抓包，
+  贴给我，我们可以直接对着它验证这条反推结论；也可以告诉我你用的是哪种 mechanism（5 还是 7），我们把它走一遍完整四趟。
+</div>
+
+<div class="lesson-footer">
+  <h3>本课在本课程中的位置</h3>
+  <ul>
+    <li>上一课：<a href="0003-general-ciphering-key-info.html">general-* 家族：报文里怎么"顺便"带上一把密钥</a></li>
+    <li>第 2 课：<a href="0002-apdu-byte-level-crypto.html">报文一级：把规范印的字节拆开，再自己算一遍</a></li>
+    <li>第 1 课：<a href="0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+  </ul>
+</div>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

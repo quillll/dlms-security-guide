@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 2 课 · 报文一级：把规范印的字节拆开，再自己算一遍</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+
+<p class="lesson-meta">
+  <span>第 2 课</span><span class="sep">·</span>
+  <span>约 18 分钟</span><span class="sep">·</span>
+  <span>前置：第 1 课</span><span class="sep">·</span>
+  <span>产出：能拆任意一条 glo 报文，并复算出规范印的 tag</span>
+</p>
+
+<h1>报文一级：把规范印的字节拆开，再自己算一遍</h1>
+
+<div class="mission-line">
+  <b>为什么学这个：</b>你在实现/对接 DLMS。抓包看到一段 hex、对端说"tag 校验失败"的时候，你需要的是<b>能把它切成字段</b>，然后<b>用规范给的答案对拍</b>——而不是猜。
+  这一课就干这两件事。
+</div>
+
+<div class="callout key">
+  <span class="label">本课唯一要带走的一句话</span>
+  <p>受保护的 xDLMS 报文，结构永远是 <b><code>Tag ‖ Len ‖ SH ‖ 内容 ‖ tag</code></b>，其中 <b><code>SH = SC ‖ IC</code></b>（5 字节）。
+  三个字段决定一切：<b>SC 说怎么保护的、IC 说用哪个计数、tag 说有没有被改过</b>。至于内容到底是明文还是密文，只看 SC 的 E 位。</p>
+</div>
+
+<h2><span class="num">1</span>先看规范自己印出来的一条报文</h2>
+
+<p>绿皮书 Ed.11 <b>§9.2.7.2.4.10 Table 48</b>（p.255）给了一条完整的例子：一条读时钟对象的 Get 请求，用 <b>Suite 0</b>、<b>认证 + 加密</b> 保护后，在线上长这样（逐字抄录）：</p>
+
+<pre><code>C8 1E 3001234567 411312FF935A47566827C467BC 7D825C3BE4A77C3FCC056B6B</code></pre>
+
+<div class="bytes">
+  <div class="f plain"><b>Tag</b><span>C8</span></div>
+  <div class="f plain"><b>Len</b><span>1E</span></div>
+  <div class="f sec"><b>SH</b><span>SC ‖ IC</span></div>
+  <div class="f enc"><b>密文</b><span>13 B</span></div>
+  <div class="f aut"><b>tag</b><span>12 B</span></div>
+</div>
+
+<div class="table-scroll">
+<table>
+  <caption>同一份规范里，这条请求在三种保护下的完整报文（Table 48 逐字）</caption>
+  <thead><tr><th>保护</th><th>SC</th><th>完整报文（hex）</th><th>长度</th></tr></thead>
+  <tbody>
+    <tr><td>仅认证</td><td><code>10</code></td><td><code>C81E1001234567C0010000080000010000FF020006725D910F9221D263877516</code></td><td>32 B</td></tr>
+    <tr><td>仅加密</td><td><code>20</code></td><td><code>C8122001234567411312FF935A47566827C467BC</code></td><td>20 B</td></tr>
+    <tr><td>认证 + 加密</td><td><code>30</code></td><td><code>C81E3001234567411312FF935A47566827C467BC7D825C3BE4A77C3FCC056B6B</code></td><td>32 B</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>先自己读一遍 <code>Len</code>。</b>认证+加密那条是 <code>0x1E</code> = 30。这 30 是指哪 30 个字节？</p>
+
+<div class="recall">
+  <details open>
+    <summary>0x1E 是怎么算出来的？</summary>
+    <p><b>Len 从 SH 的第一个字节（SC）算起，包含末尾的 tag，但不包含 Tag 与 Len 自己。</b>
+    所以 <code>1（SC）+ 4（IC）+ 13（内容）+ 12（tag）= 30 = 0x1E</code> ✓。<br>
+    再验"仅加密"那条：<code>0x12 = 18 = 1 + 4 + 13</code>——它没有 tag，所以少了 12 ✓。<br>
+    这个口径规范没有写成文字，是从示例的长度反推出来的（我在 [NOTES.md](../NOTES.md) 里标了这一条是推导，不是原文）。</p>
+  </details>
+</div>
+
+<h2><span class="num">2</span>动手：把它切开</h2>
+
+<p>下面这个拆分器按 DLMS 的字段顺序切报文，并给出每个字段的规范依据。先把三个预设各点一遍，再把你自己的抓包粘进去。</p>
+
+<div class="frame-splitter" data-frame-splitter>
+  <noscript>
+    <p><b>（JavaScript 未启用）</b>手工读法：第 1 字节是 Tag，第 2 字节是 Len（≥0x81 时是长形式），
+    然后 5 字节 SH = SC + 4 字节 IC，最后：SC 的 A 位为 1 则末尾 12 字节是 tag，其余是内容。</p>
+  </noscript>
+</div>
+
+<div class="callout trap">
+  <span class="label">拆分器在教你一件事</span>
+  <p>注意 <b>A = 0（仅加密）那一档，报文里根本没有 tag 字段</b>，Len 也相应少 12。规范 §9.2.3.3.7.1 的说法是：
+  <i>"it is also possible to use GCM to provide confidentiality only: in this case, the authentication tags are simply not computed and checked."</i>
+  ——<b>只有机密性，没有完整性</b>。这一档在实践中很少用，但你会在老设备上遇到。</p>
+</div>
+
+<h2><span class="num">3</span>三个输入是怎么拼出来的：P、AAD、IV</h2>
+
+<p>GCM 只需要三样输入。DLMS 对"什么进明文、什么进 AAD"的规定就是 <b>Table 46</b>（§9.2.7.2.4.3）：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 46 · Plaintext 与 Additional Authenticated Data（SC = 安全控制字节，AK = 认证密钥，I = 被保护的 APDU，C 表示压缩）</caption>
+  <thead><tr><th>E</th><th>A</th><th>保护</th><th>P（明文，被加密）</th><th>AAD（不加密，但参与校验）</th></tr></thead>
+  <tbody>
+    <tr><td>0</td><td>0</td><td>None</td><td>–</td><td>–</td></tr>
+    <tr><td>0</td><td>1</td><td>仅认证</td><td><b>空</b></td><td><code>SC ‖ AK ‖ (C) I</code></td></tr>
+    <tr><td>1</td><td>0</td><td>仅加密</td><td><code>(C) I</code></td><td>–</td></tr>
+    <tr><td>1</td><td>1</td><td>认证 + 加密</td><td><code>(C) I</code></td><td><code>SC ‖ AK</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>而 IV 来自另一节（§9.2.3.3.7.3）：</p>
+
+<pre><code>IV  = system title (8 字节) ‖ invocation counter (4 字节)      // 共 96 bit
+tag = GCM 输出的 16 字节 tag 的前 12 字节                        // 固定 96 bit，§9.2.3.3.7.6</code></pre>
+
+<div class="callout warn">
+  <span class="label">三件反直觉的事，一起记住</span>
+  <p><b>① 认证密钥 AK 在 AAD 里</b>——它参与校验、但不被加密，所以 AK 是"认证材料"而不是"保密材料"。<br>
+  <b>② 仅认证时明文就在报文里</b>：P 是空的，内容整体进 AAD，所以能验完整性、但谁都能看见内容。<br>
+  <b>③ 只有认证+加密时，AAD 里没有内容</b>——内容在 P 里被加密了，AAD 只有 <code>SC ‖ AK</code> 两段。</p>
+</div>
+
+<h2><span class="num">4</span>自己算一遍：和规范对答案</h2>
+
+<p>我把上面 Table 48 的三条报文和 Annex C.1 的 KDF 向量写成了一个对拍脚本，只用普通的 AES-GCM 原语，<b>不依赖任何 DLMS 库</b>——这样你就能确认：手算的规则到底对不对。</p>
+
+<div class="callout">
+  <span class="label">怎么跑</span>
+  <pre><code>pip install cryptography
+python assets\verify-dlms-gcm.py</code></pre>
+  <p>脚本位置：<a href="../assets/verify-dlms-gcm.py">assets/verify-dlms-gcm.py</a>（脚本头部注释里写了每个期望值的规范出处）。中文若显示乱码，先执行一次 <code>chcp 65001</code>。</p>
+</div>
+
+<p><b>我在建这一课时已经跑过，四个期望值全部字节级对上：</b></p>
+
+<pre><code>① 仅认证    算出 tag   06725D910F9221D263877516      规范 tag   06725D910F9221D263877516   ✓
+② 仅加密    算出密文   411312FF935A47566827C467BC    规范密文   411312FF935A47566827C467BC  ✓
+③ 认证+加密 算出 tag   7D825C3BE4A77C3FCC056B6B      规范 tag   7D825C3BE4A77C3FCC056B6B   ✓
+   完整报文              C81E3001234567411312FF935A47566827C467BC7D825C3BE4A77C3FCC056B6B   ✓
+第 2 部分 KDF  Hash(1 ‖ Z ‖ OtherInfo) = C5F45128…49712F46（与 Annex C.1 一致），GUEK 取其前 16 字节 ✓</code></pre>
+
+<h3>预测练习（先写答案，再跑脚本验证）</h3>
+
+<div class="recall">
+  <details open>
+    <summary>① 把 IC 从 <code>01234567</code> 改成 <code>01234568</code>，密文和 tag 会怎样？</summary>
+    <p><b>两者都会变。</b>IC 是 IV（nonce）的后 4 字节，nonce 一变，GCM 的密钥流就完全不同 → 密文变；tag 也会变。
+    但注意：<b>IC 不在 AAD 里</b>，所以 AAD 一个字节都不用动。<br>
+    顺手记一条工程后果：对端用"自己存的计数器"校验你发来的 IC，所以你<b>不能</b>在重试时随便回退 IC——会收到 <code>invocation-counter-error</code>。</p>
+  </details>
+  <details open>
+    <summary>② 把 SC 从 <code>0x30</code> 改成 <code>0x31</code>，会发生什么？</summary>
+    <p><b>套件从 0 变成 1，而且 tag 也会变。</b>两件事同时发生：SC 的低 4 位是套件号（0/1/2），换成 1 就要求对端按 Suite 1 的密钥长度与算法来算；同时 <b>SC 是 AAD 的第一个字节</b>，所以 AAD 变了、tag 必然变。<br>
+    这也是抓包里最快识别套件的办法（第 1 课练过：低半字节）。</p>
+  </details>
+  <details open>
+    <summary>③ 为什么脚本里"仅加密"那条，GCM 内部算出的 tag 用不上？</summary>
+    <p>因为 A = 0 时 DLMS <b>不计算也不校验</b> tag，报文里不携带它，Len 也少了 12。
+    脚本用的是一个通用 GCM 库，它总会顺手算出 tag——所以脚本会把它打印出来，但那不是 DLMS 的行为，<b>不要照抄进你的实现</b>。</p>
+  </details>
+</div>
+
+<h2><span class="num">5</span>练一下：三个必须记牢的判断</h2>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q1 · 认证标签（tag）的长度是多少？</p>
+  <ul class="opts">
+    <li data-correct="true">十二字节固定</li>
+    <li>十六字节固定</li>
+    <li>随套件而变化</li>
+    <li>随明文而变化</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>绿皮书 §9.2.3.3.7.6 逐字规定 tag 的位长 t 在 Suite 0/1/2 都是 <b>96 bit = 12 字节</b>。这是"三套件通用的常数"，别和 <b>密钥长度</b>（128 / 128 / 256 bit）或<b>签名长度</b>（64 / 96 字节）混起来——三者都随套件或用途不同，只有 tag 不动。GCM 标准本身允许 16 字节 tag，DLMS 把它截到 12。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q2 · "仅认证"保护下，报文里携带的内容是什么？</p>
+  <ul class="opts">
+    <li data-correct="true">明文加标签</li>
+    <li>密文加标签</li>
+    <li>只有标签啊</li>
+    <li>只有密文啊</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>E = 0、A = 1 时 P 是空的，内容整体进 AAD，所以报文里带着<b>原样的明文</b>，末尾附 12 字节 tag。完整性有保护、机密性没有——这也是"仅认证"在现场常被诟病的原因：报文内容仍然是可读的。接收端取出内容时要扣掉 <b>5 + 12</b> 字节（SC ‖ IC 与 tag）。</p>
+</div>
+
+<div class="quiz" data-quiz>
+  <p class="q">Q3 · "认证 + 加密"时，进入 AAD 的是哪几段？</p>
+  <ul class="opts">
+    <li data-correct="true">SC 与认证密钥</li>
+    <li>SC 与报文明文</li>
+    <li>AK 与报文明文</li>
+    <li>SC 与认证密文</li>
+  </ul>
+  <p class="feedback"><b>解析：</b>Table 46 的 AE 行：AAD = <code>SC ‖ AK</code>，而内容在 P 里被加密。只有"仅认证"那一档，内容才进 AAD（那时它没有被加密，本来就是明文）。顺带纠正一个常见误解：<b>AK 不是 GCM 的密钥</b>——GCM 的分组密钥是 EK，AK 只是被放进 AAD 的一段认证材料。</p>
+</div>
+
+<h2><span class="num">6</span>主要来源与下一步</h2>
+
+<div class="callout quote">
+  <span class="label">首选一手来源（建议现在读这两处）</span>
+  <p>① 绿皮书 Ed.11 <b>§9.2.7.2.4.10 Table 48</b>（p.255）——本课那条 Get 请求的完整推导，含 P / AAD / C / T / 三种完整报文。<br>
+  ② <b>§9.2.7.2.4.3 Table 46</b>（p.251）——P 与 AAD 的规则；配合 <b>§9.2.3.3.7.3</b>（IV）与 <b>§9.2.3.3.7.6</b>（tag 长度）。<br>
+  本地文件：<code>GreenBook\output\book\ai\ch9\markdown\ch9-9-2-information-security-in-dlms-cosem.md</code>（节标题后的 <code>&lt;!-- p.xxx --&gt;</code> 是原 PDF 页码）。</p>
+</div>
+
+<ul>
+  <li>动手脚本：<a href="../assets/verify-dlms-gcm.py">assets/verify-dlms-gcm.py</a>（Table 48 的三种保护 + Annex C.1 的 KDF 向量，全部自动对拍）</li>
+  <li>交互组件：<a href="../assets/frame-splitter.js">assets/frame-splitter.js</a>（本课的报文拆分器）· <a href="../assets/sc-decoder.js">assets/sc-decoder.js</a>（第 1 课的 SC 字节解码器）</li>
+  <li>速查：<a href="../reference/security-suites.html">Suite 0/1/2 速查表</a> · <a href="../reference/crypto-primer.html">密码学最小必要直觉</a></li>
+  <li>本课素材（带章节引证的原始抽取）：<code>.research\green-book-security-extract.md</code>（Table 48/51 的完整 hex）</li>
+</ul>
+
+<h3>下一课的候选</h3>
+<ol>
+  <li><b>general-* 家族与密钥协商报文</b>：拆分器遇到 <code>DD</code> 就停手了——通用加密报文外面还有 transaction-id、两端 system title、key-info，Annex C.2 给了完整示例；顺便把三种密钥协商方案认一遍。</li>
+  <li><b>association 认证（GMAC 与 HLS）</b>：mechanism 5 的 <code>SC ‖ IC ‖ GMAC(SC ‖ AK ‖ StoC)</code> 怎么算（规范 Table 51 有测试向量，可以再对拍一次）。</li>
+  <li><b>密钥全貌</b>：EK / AK / KEK / GUEK / GBEK / GAK 的用途与建立方式，以及"带外预置"对应的运维动作。</li>
+</ol>
+
+<div class="ask-teacher">
+  <strong>我是你的老师，卡住就问。</strong>
+  你可以：把抓包的一段 hex 贴给我，我们一起拆；跑脚本报错就把报错贴过来；问"为什么这里要 5 字节"；或者直接说"第 3 课"。<br>
+  也可以反过来考我：随便改一条报文里的一个字节，问我结果会怎样——我会告诉你该看哪一节规范。
+</div>
+
+<div class="lesson-footer">
+  <h3>本课在本课程中的位置</h3>
+  <ul>
+    <li>上一课：<a href="0001-security-suites-overview.html">Suite 0/1/2：先把三个旋钮分清</a></li>
+    <li>参考：<a href="../reference/security-suites.html">套件速查</a> · <a href="../reference/crypto-primer.html">密码学直觉</a></li>
+    <li>课程首页：<a href="../index.html">index.html</a></li>
+  </ul>
+</div>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/frame-splitter.js"></script>
+</body>
+</html>

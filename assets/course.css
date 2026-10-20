@@ -1,0 +1,393 @@
+/* ============================================================
+   DLMS/COSEM 课程 · 共享样式表  (assets/course.css)
+   所有 lesson 与 reference 文档都链接本文件。
+   设计目标：Tufte 风格、窄版心、打印友好、中英文混排可读。
+   ============================================================ */
+
+:root {
+  --ink:        #16161a;
+  --ink-soft:   #4a4a55;
+  --ink-faint:  #7c7c88;
+  --paper:      #fdfcf9;
+  --paper-tint: #f4f1ea;
+  --rule:       #d9d4c8;
+  --rule-soft:  #ebe7dd;
+  --link:       #1a5c8a;
+  --link-visit: #6b4a86;
+
+  /* 套件配色（全课程统一，不得随意改） */
+  --suite0: #8a6d3b;
+  --suite1: #1a6b4a;
+  --suite2: #7a2f4f;
+  --accent: #1a5c8a;
+
+  --warn-bg:   #fdf4e3;
+  --warn-line: #d9a441;
+  --key-bg:    #eef4f0;
+  --key-line:  #1a6b4a;
+  --info-bg:   #eef2f6;
+  --info-line: #5b7f9e;
+  --trap-bg:   #fcefef;
+  --trap-line: #a34a4a;
+
+  --serif: "Charter", "Iowan Old Style", "Source Serif 4", "Noto Serif SC",
+           "Songti SC", "SimSun", Georgia, "Times New Roman", serif;
+  --sans:  "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+           system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:  "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas,
+           "Liberation Mono", monospace;
+}
+
+/* ---------- 基础排版 ---------- */
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0 auto;
+  padding: 4rem 1.5rem 6rem;
+  max-width: 47rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: oldstyle-nums;
+}
+
+p, li, dd, blockquote { hyphens: auto; }
+
+p { margin: 0 0 1.05em; }
+
+a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:visited { color: var(--link-visit); }
+a:hover { text-decoration-thickness: 2px; }
+
+h1, h2, h3, h4 {
+  font-family: var(--sans);
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 2.2em 0 0.6em;
+  letter-spacing: -0.005em;
+}
+
+h1 { font-size: 1.85rem; margin-top: 0; }
+h2 { font-size: 1.35rem; border-bottom: 1px solid var(--rule); padding-bottom: 0.25em; }
+h3 { font-size: 1.1rem; }
+h4 { font-size: 0.98rem; color: var(--ink-soft); }
+
+h2 .num, h3 .num { color: var(--ink-faint); font-weight: 500; margin-right: 0.4em; }
+
+hr { border: none; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+strong { font-weight: 650; }
+em { font-style: italic; }
+
+ul, ol { margin: 0 0 1.05em; padding-left: 1.4em; }
+li { margin-bottom: 0.35em; }
+li > ul, li > ol { margin-top: 0.35em; }
+
+blockquote {
+  margin: 1.4em 0; padding: 0.1em 0 0.1em 1.1em;
+  border-left: 3px solid var(--rule);
+  color: var(--ink-soft); font-style: italic;
+}
+blockquote cite { display: block; font-style: normal; font-size: 0.85rem; color: var(--ink-faint); margin-top: 0.4em; }
+
+/* ---------- 页眉 / 页脚 ---------- */
+
+.lesson-meta {
+  font-family: var(--sans); font-size: 0.78rem; color: var(--ink-faint);
+  text-transform: uppercase; letter-spacing: 0.09em;
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-bottom: 0.9rem;
+}
+.lesson-meta .sep { color: var(--rule); }
+
+.mission-line {
+  font-family: var(--sans); font-size: 0.9rem; color: var(--ink-soft);
+  background: var(--paper-tint); border-left: 3px solid var(--accent);
+  padding: 0.7em 0.9em; margin: 0 0 2rem; border-radius: 0 3px 3px 0;
+}
+.mission-line b { color: var(--ink); }
+
+.lesson-footer {
+  margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--rule);
+  font-family: var(--sans); font-size: 0.85rem; color: var(--ink-soft);
+}
+.lesson-footer h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin-top: 1.6em; }
+.lesson-footer ul { padding-left: 1.2em; }
+
+.ask-teacher {
+  margin-top: 2.5rem; padding: 1rem 1.2rem;
+  background: var(--info-bg); border: 1px solid var(--info-line); border-radius: 4px;
+  font-family: var(--sans); font-size: 0.9rem; line-height: 1.5;
+}
+.ask-teacher strong { display: block; margin-bottom: 0.25rem; }
+
+/* ---------- 代码 ---------- */
+
+code, kbd, samp, pre { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+code {
+  font-size: 0.86em; background: var(--paper-tint);
+  padding: 0.1em 0.3em; border-radius: 2px; border: 1px solid var(--rule-soft);
+}
+
+pre {
+  background: #fbf9f4; border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  border-radius: 3px; padding: 0.85rem 1rem; overflow-x: auto;
+  font-size: 0.82rem; line-height: 1.5; margin: 0 0 1.2em;
+}
+pre code { background: none; border: none; padding: 0; font-size: 1em; }
+
+.hex { letter-spacing: 0.06em; }
+.hex b { color: var(--suite2); font-weight: 600; }
+.hex i { color: var(--suite1); font-style: normal; font-weight: 600; }
+
+/* ---------- 表格 ---------- */
+
+table {
+  border-collapse: collapse; width: 100%; margin: 0 0 1.4em;
+  font-family: var(--sans); font-size: 0.85rem; line-height: 1.45;
+}
+caption {
+  caption-side: top; text-align: left; font-family: var(--sans);
+  font-size: 0.78rem; color: var(--ink-faint); padding-bottom: 0.45em;
+}
+th, td { text-align: left; vertical-align: top; padding: 0.45em 0.6em; border-bottom: 1px solid var(--rule-soft); }
+thead th { border-bottom: 1.5px solid var(--rule); font-weight: 650; }
+tbody tr:hover { background: #faf8f3; }
+td code, th code { font-size: 0.92em; }
+.table-scroll { overflow-x: auto; }
+
+/* 套件对照表 */
+.suite-table th.s0 { color: var(--suite0); }
+.suite-table th.s1 { color: var(--suite1); }
+.suite-table th.s2 { color: var(--suite2); }
+.suite-table th:first-child, .suite-table td:first-child {
+  font-weight: 600; color: var(--ink-soft); white-space: nowrap;
+}
+
+/* ---------- 提示块 ---------- */
+
+.callout {
+  margin: 1.5em 0; padding: 0.85em 1.05em; border-radius: 3px;
+  border-left: 4px solid var(--info-line); background: var(--info-bg);
+  font-size: 0.95rem;
+}
+.callout > :last-child { margin-bottom: 0; }
+.callout .label {
+  display: block; font-family: var(--sans); font-size: 0.74rem;
+  text-transform: uppercase; letter-spacing: 0.09em; font-weight: 650;
+  margin-bottom: 0.3em; color: var(--info-line);
+}
+.callout.warn  { background: var(--warn-bg);  border-color: var(--warn-line); }
+.callout.warn .label  { color: #8a6410; }
+.callout.key   { background: var(--key-bg);   border-color: var(--key-line); }
+.callout.key .label   { color: var(--key-line); }
+.callout.trap  { background: var(--trap-bg);  border-color: var(--trap-line); }
+.callout.trap .label  { color: var(--trap-line); }
+.callout.quote { background: var(--paper-tint); border-color: var(--rule); }
+
+/* ---------- 边注 ---------- */
+
+.sidenote {
+  font-family: var(--sans); font-size: 0.8rem; line-height: 1.45;
+  color: var(--ink-soft);
+}
+@media (min-width: 68rem) {
+  .sidenote {
+    float: right; clear: right; width: 15rem; margin: 0.25rem -17rem 1rem 1.5rem;
+    padding-left: 0.75rem; border-left: 2px solid var(--rule);
+  }
+}
+
+/* ---------- 套件徽标 ---------- */
+
+.badge {
+  display: inline-block; font-family: var(--sans); font-size: 0.72rem;
+  font-weight: 650; letter-spacing: 0.04em; padding: 0.12em 0.5em;
+  border-radius: 999px; border: 1px solid currentColor; white-space: nowrap;
+}
+.badge.s0 { color: var(--suite0); }
+.badge.s1 { color: var(--suite1); }
+.badge.s2 { color: var(--suite2); }
+
+/* ---------- 流程图 / 字节布局图 ---------- */
+
+.figure { margin: 1.8em 0; }
+.figure figcaption {
+  font-family: var(--sans); font-size: 0.8rem; color: var(--ink-faint);
+  margin-top: 0.5em;
+}
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.5rem; font-family: var(--sans); font-size: 0.8rem; }
+.flow .step {
+  flex: 1 1 8rem; background: var(--paper-tint); border: 1px solid var(--rule);
+  border-radius: 3px; padding: 0.55em 0.7em;
+}
+.flow .step b { display: block; color: var(--ink); font-size: 0.85rem; }
+.flow .step span { color: var(--ink-soft); }
+.flow .arrow { align-self: center; color: var(--ink-faint); }
+
+.bytes { display: flex; flex-wrap: wrap; gap: 2px; font-family: var(--mono); font-size: 0.78rem; margin-bottom: 0.4em; }
+.bytes .f {
+  border: 1px solid var(--rule); border-radius: 3px; padding: 0.45em 0.55em;
+  background: var(--paper-tint); text-align: center; min-width: 2.6rem;
+}
+.bytes .f b { display: block; font-size: 0.78rem; }
+.bytes .f span { display: block; color: var(--ink-faint); font-size: 0.7rem; }
+.bytes .f.plain { background: #fff; }
+.bytes .f.sec   { background: var(--info-bg);  border-color: var(--info-line); }
+.bytes .f.aut   { background: var(--key-bg);   border-color: var(--key-line); }
+.bytes .f.enc   { background: #f7eef2;         border-color: var(--suite2); }
+
+/* ---------- 测验组件（配合 assets/quiz.js） ---------- */
+
+.quiz {
+  margin: 1.6em 0; padding: 1rem 1.15rem 0.9rem;
+  border: 1px solid var(--rule); border-top: 3px solid var(--accent);
+  border-radius: 3px; background: #fff;
+  font-family: var(--sans); font-size: 0.92rem;
+}
+.quiz .q { font-weight: 650; margin-bottom: 0.7em; color: var(--ink); }
+.quiz .opts { list-style: none; margin: 0; padding: 0; }
+.quiz .opts li {
+  margin-bottom: 0.4em; padding: 0.45em 0.6em; border: 1px solid var(--rule);
+  border-radius: 3px; cursor: pointer; background: var(--paper);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.quiz .opts li:hover { background: var(--paper-tint); border-color: var(--ink-faint); }
+.quiz .opts li .mark { font-family: var(--mono); color: var(--ink-faint); margin-right: 0.5em; }
+.quiz .opts li.correct { background: var(--key-bg); border-color: var(--key-line); }
+.quiz .opts li.correct .mark { color: var(--key-line); }
+.quiz .opts li.wrong { background: var(--trap-bg); border-color: var(--trap-line); }
+.quiz .opts li.wrong .mark { color: var(--trap-line); }
+.quiz .opts li.locked { cursor: default; }
+.quiz .feedback { margin-top: 0.6em; font-size: 0.88rem; color: var(--ink-soft); display: none; }
+.quiz .feedback.show { display: block; }
+.quiz .feedback b { color: var(--ink); }
+.quiz .hint { font-size: 0.8rem; color: var(--ink-faint); margin-top: 0.5em; }
+.quiz .score { font-weight: 650; color: var(--ink); }
+
+/* 自测清单：折叠答案的检索练习 */
+.recall { margin: 1.5em 0; font-family: var(--sans); font-size: 0.92rem; }
+.recall details {
+  border: 1px solid var(--rule); border-radius: 3px;
+  padding: 0.55em 0.8em; margin-bottom: 0.5em; background: var(--paper);
+}
+.recall details[open] { background: var(--paper-tint); }
+.recall summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.recall summary::marker { color: var(--ink-faint); }
+.recall details > *:not(summary) { margin-top: 0.6em; }
+
+/* ---------- 索引页 ---------- */
+
+.index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.9rem; margin: 1.5em 0; }
+.index-card {
+  border: 1px solid var(--rule); border-radius: 3px; padding: 0.8em 0.9em;
+  background: var(--paper); font-family: var(--sans); font-size: 0.88rem;
+}
+.index-card a { font-weight: 650; text-decoration: none; }
+.index-card p { margin: 0.3em 0 0; color: var(--ink-soft); font-size: 0.84rem; }
+
+/* ---------- SC 字节解码器（配合 assets/sc-decoder.js） ---------- */
+
+.sc-decoder {
+  margin: 1.6em 0; padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  border-radius: 3px; background: #fff;
+  font-family: var(--sans); font-size: 0.88rem;
+}
+.sc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; margin-bottom: 0.7em; }
+.sc-hexwrap { font-size: 0.82rem; color: var(--ink-soft); }
+.sc-hex {
+  font-family: var(--mono); font-size: 0.95rem; width: 4.2rem; padding: 0.25em 0.4em;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--paper);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.sc-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.sc-preset {
+  font-family: var(--sans); font-size: 0.75rem; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink-soft);
+  border-radius: 999px; padding: 0.2em 0.65em;
+}
+.sc-preset:hover { border-color: var(--accent); color: var(--accent); }
+.sc-bitrow { gap: 0.4rem; }
+.sc-bit {
+  flex: 0 0 auto; cursor: pointer; text-align: left;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--paper);
+  padding: 0.35em 0.55em; font-family: var(--sans); line-height: 1.25;
+  display: flex; flex-direction: column; gap: 0.05em; min-width: 5.5rem;
+}
+.sc-bit b { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); }
+.sc-bit .nm { font-weight: 700; font-size: 0.9rem; color: var(--ink-soft); }
+.sc-bit .full { font-size: 0.68rem; color: var(--ink-faint); }
+.sc-bit.on { background: var(--key-bg); border-color: var(--key-line); }
+.sc-bit.on .nm { color: var(--key-line); }
+.sc-bit.on b { color: var(--key-line); }
+.sc-suitelabel { font-size: 0.78rem; color: var(--ink-soft); font-family: var(--mono); }
+.sc-suitesel { font-family: var(--sans); font-size: 0.85rem; padding: 0.25em 0.4em; border: 1px solid var(--rule); border-radius: 3px; background: var(--paper); max-width: 100%; }
+.sc-readout { margin-top: 0.6em; padding-top: 0.7em; border-top: 1px dashed var(--rule); line-height: 1.5; }
+.sc-out-head { font-family: var(--mono); font-size: 0.95rem; margin-bottom: 0.45em; }
+.sc-bin { color: var(--ink-faint); font-size: 0.85rem; margin-left: 0.5em; letter-spacing: 0.1em; }
+.sc-out-line { margin-bottom: 0.28em; color: var(--ink-soft); }
+.sc-out-line b { color: var(--ink); margin-right: 0.35em; }
+.sc-meta { display: block; color: var(--ink-faint); font-size: 0.8rem; }
+.warnline { color: var(--trap-line); }
+.sc-out-foot { margin-top: 0.5em; font-size: 0.75rem; color: var(--ink-faint); }
+
+@media print {
+  .sc-decoder { break-inside: avoid; }
+  .sc-presets, .sc-bitrow button { display: none; }
+}
+
+
+/* ---------- 报文拆分器（配合 assets/frame-splitter.js） ---------- */
+
+.frame-splitter {
+  margin: 1.6em 0; padding: 1rem 1.1rem 0.9rem;
+  border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  border-radius: 3px; background: #fff;
+  font-family: var(--sans); font-size: 0.88rem;
+}
+.fs-input label { display: block; font-size: 0.82rem; color: var(--ink-soft); }
+.fs-input textarea {
+  width: 100%; margin-top: 0.3em; padding: 0.5em 0.6em; resize: vertical;
+  font-family: var(--mono); font-size: 0.85rem; line-height: 1.45;
+  border: 1px solid var(--rule); border-radius: 3px; background: var(--paper);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.fs-presets { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.55em 0 0.8em; }
+.fs-preset {
+  font-family: var(--sans); font-size: 0.75rem; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink-soft);
+  border-radius: 999px; padding: 0.2em 0.65em;
+}
+.fs-preset:hover { border-color: var(--accent); color: var(--accent); }
+.fs-head { margin-bottom: 0.6em; }
+.fs-sub { display: block; font-size: 0.66rem; color: var(--ink-faint); }
+.fs-table { margin-top: 0.5em; }
+.fs-table td:first-child { white-space: nowrap; font-weight: 600; color: var(--ink-soft); }
+.fs-why { color: var(--ink-soft); font-size: 0.82rem; }
+.fs-err { color: var(--trap-line); }
+.frame-splitter .callout { font-size: 0.85rem; margin: 0.9em 0 0; }
+
+/* ---------- 打印 ---------- */
+
+@media print {
+  :root { --paper: #fff; --paper-tint: #f7f5f0; }
+  body { padding: 0; max-width: none; font-size: 10.5pt; line-height: 1.45; }
+  a { color: var(--ink); text-decoration: none; }
+  a::after { content: " (" attr(href) ")"; font-size: 0.75em; color: var(--ink-faint); }
+  a[href^="#"]::after, .no-print a::after { content: ""; }
+  h1 { font-size: 17pt; } h2 { font-size: 13pt; break-after: avoid; }
+  h3 { font-size: 11.5pt; break-after: avoid; }
+  .quiz, .ask-teacher { break-inside: avoid; }
+  .quiz .opts li { cursor: default; }
+  .quiz .feedback { display: block !important; }
+  details > *:not(summary) { display: block !important; }
+  table, pre, .callout, figure { break-inside: avoid; }
+  .sidenote { float: none; width: auto; margin: 0.5em 0; padding-left: 0.75rem; }
+  @page { margin: 18mm 16mm; }
+}
