@@ -37,6 +37,7 @@
   - 保留的规范留白：GMAC 的 IC 递增、general-signing 的签名覆盖范围、`import_certificate` 正文的 CSR 笔误、Gurux Suite 2 截 16 B、无真机抓包。审核报告 §5 列明。
   - **审核后完善**：顶部加四条阅读路线；第 3 章加 X.509 v3 结构与 DER/PEM 坑；第 8 章加 C(2e,0s) 时序、`key_agreement` 请求布局（`09 81 80`）与 `build_key_data()`；打印样式隐藏交互输入区。
   - **视频第 1 集**：`video/dlms-security-ep1.mp4`（4:40，9 页幻灯片 + 中文配音），源文件 `slides.html` / `narration.json` / `make_video.py` / `README.md`；首页已加入口。
+  - **导航与 general 家族**：侧栏升级为章内小节手风琴（86 个 h3 子项，`chX-sN` 锚点）；第 6 章新增 6.7.1 general-glo vs general-ciphering、6.7.2 general-signing 对照、字节布局、选型与优缺点。
 
 - **（2026-10-20）新增单页完整教程 `dlms-security-complete-guide.html`**（约 1900 行）：
   - 10 章：五个旋钮 / 对称算法 / 非对称算法 / Suite 全表 / 蓝皮书接口类逐属性方法 / 报文解析 / LLS+HLS 七机制 / 密钥协商传输轮换 / 端到端与排障 / 自测与交叉验证台账。

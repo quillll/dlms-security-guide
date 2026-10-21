@@ -72,6 +72,25 @@
     color: #1a6b4a; font-weight: 700;
   }
   .side-sub { padding-left: 22px; font-size: 12px; color: #7c7c88; }
+  .side-group { margin: 1px 0; }
+  .side-chrow { display: flex; align-items: flex-start; }
+  .side-caret {
+    flex: 0 0 24px; width: 24px; border: 0; background: none; cursor: pointer;
+    color: #4a4a55; font-size: 11px; line-height: 1; padding: 9px 0 0;
+    transition: transform 150ms ease;
+  }
+  .side-group.open .side-caret { transform: rotate(90deg); }
+  .side-chapter { flex: 1; font-weight: 700; padding-left: 2px; }
+  .side-subs { display: none; margin: 2px 0 4px; }
+  .side-group.open .side-subs { display: block; }
+  .side-sub2 {
+    padding: 5px 8px 5px 34px; font-size: 12px; line-height: 1.35;
+    color: #4a4a55; border-left-width: 3px;
+  }
+  .side-sub2.active {
+    background: #e6efe9; border-left-color: #1a6b4a;
+    color: #1a6b4a; font-weight: 600;
+  }
   .side-foot { margin-top: 18px; padding: 14px 10px 0; border-top: 1px solid #d9d4c8; font-size: 12px; }
   .side-foot a { color: #1a5c8a; }
 
@@ -93,6 +112,7 @@
     }
     .nav-mask.show { opacity: 1; pointer-events: auto; }
     .page { padding-top: 5.6rem; }
+    h3[id], h4[id] { scroll-margin-top: 84px; }
   }
 
   @media (max-width: 640px) {
@@ -122,19 +142,180 @@
     <div class="side-kicker">DLMS / COSEM SECURITY</div>
     <div class="side-title">安全完全教程<br><span style="font-weight:400;color:#7c7c88;font-size:12px;">2026-10-20 版</span></div>
   </div>
-  <a class="side-link" href="#ch1">1 · 五个旋钮</a>
-  <a class="side-link" href="#ch2">2 · 对称算法</a>
-  <a class="side-link" href="#ch3">3 · 非对称与证书</a>
-  <a class="side-link" href="#ch4">4 · Suite 0/1/2</a>
-  <a class="side-link" href="#ch5">5 · 蓝皮书接口类</a>
-  <a class="side-link" href="#ch6">6 · 报文解析</a>
-  <a class="side-link side-sub" href="#table48">　└ Table 48 / 401 B 示例</a>
-  <a class="side-link" href="#ch7">7 · 认证 0–7</a>
-  <a class="side-link side-sub" href="#matrix">　└ mechanism × suite</a>
-  <a class="side-link" href="#ch8">8 · 密钥协商与轮换</a>
-  <a class="side-link" href="#ch9">9 · 端到端与排障</a>
-  <a class="side-link" href="#ch10">10 · 自测与验证</a>
-  <a class="side-link" href="#lab">附录 A · 实战演练</a>
+    <div class="side-group" data-ch="ch1">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起1 · 五个旋钮">▸</button>
+        <a class="side-link side-chapter" href="#ch1">1 · 五个旋钮</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch1-s1">1.1 旋钮一：安全套件（security suite）</a>
+      <a class="side-link side-sub2" href="#ch1-s2">1.2 旋钮二：安全策略（security policy）</a>
+      <a class="side-link side-sub2" href="#ch1-s3">1.3 旋钮三：访问权限（access rights）</a>
+      <a class="side-link side-sub2" href="#ch1-s4">1.4 旋钮四：安全材料（security material）</a>
+      <a class="side-link side-sub2" href="#ch1-s5">1.5 旋钮五：认证机制（authentication）</a>
+      <a class="side-link side-sub2" href="#ch1-s6">1.6 最容易混的六组概念</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch2">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起2 · 对称算法">▸</button>
+        <a class="side-link side-chapter" href="#ch2">2 · 对称算法</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch2-s1">2.1 AES：16 字节一块的锁</a>
+      <a class="side-link side-sub2" href="#ch2-s2">2.2 模式：ECB、CBC、CTR、GCM</a>
+      <a class="side-link side-sub2" href="#ch2-s3">2.3 DLMS 怎么填这五个参数</a>
+      <a class="side-link side-sub2" href="#ch2-s4">2.4 三种保护组合：A 位与 E 位</a>
+      <a class="side-link side-sub2" href="#ch2-s5">2.5 用 Table 48 的三条报文对照</a>
+      <a class="side-link side-sub2" href="#ch2-s6">2.6 GMAC：只贴封条</a>
+      <a class="side-link side-sub2" href="#ch2-s7">2.7 AES Key Wrap：装钥匙的信封</a>
+      <a class="side-link side-sub2" href="#ch2-s8">2.8 SHA-256 / SHA-384：指纹</a>
+      <a class="side-link side-sub2" href="#ch2-s9">2.9 KDF：从共享秘密到能用的钥匙</a>
+      <a class="side-link side-sub2" href="#ch2-s10">2.10 V.44：不是密码学</a>
+      <a class="side-link side-sub2" href="#ch2-s11">2.11 用代码落地（Python，最小可用）</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch3">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起3 · 非对称与证书">▸</button>
+        <a class="side-link side-chapter" href="#ch3">3 · 非对称与证书</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch3-s1">3.1 椭圆曲线：一张有限的“点加法”表</a>
+      <a class="side-link side-sub2" href="#ch3-s2">3.2 ECDH：两个人各自算，得到同一个秘密</a>
+      <a class="side-link side-sub2" href="#ch3-s3">3.3 三种 ECDH 方案：谁出临时钥匙，谁出长期钥匙</a>
+      <a class="side-link side-sub2" href="#ch3-s4">3.4 ECDSA：签名，不是加密</a>
+      <a class="side-link side-sub2" href="#ch3-s5">3.5 证书：把公钥和身份绑起来</a>
+      <a class="side-link side-sub2" href="#ch3-s6">3.6 一张 X.509 v3 证书里有什么</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch4">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起4 · Suite 0/1/2">▸</button>
+        <a class="side-link side-chapter" href="#ch4">4 · Suite 0/1/2</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch4-s1">4.1 Table 27 逐字对照</a>
+      <a class="side-link side-sub2" href="#ch4-s2">4.2 每个套件“能做什么、不能做什么”</a>
+      <a class="side-link side-sub2" href="#ch4-s3">4.3 三个常见误解</a>
+      <a class="side-link side-sub2" href="#ch4-s4">4.4 怎么选</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch5">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起5 · 蓝皮书接口类">▸</button>
+        <a class="side-link side-chapter" href="#ch5">5 · 蓝皮书接口类</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch5-s1">5.1 四个对象的关系</a>
+      <a class="side-link side-sub2" href="#ch5-s2">5.2 Security setup（class_id = 64, version = 1）</a>
+      <a class="side-link side-sub2" href="#ch5-s3">5.3 Association LN（class_id = 15, version = 3）</a>
+      <a class="side-link side-sub2" href="#ch5-s4">5.4 Association SN（class_id = 12, version = 4）</a>
+      <a class="side-link side-sub2" href="#ch5-s5">5.5 Data protection（class_id = 30, version = 0）</a>
+      <a class="side-link side-sub2" href="#ch5-s6">5.6 Invocation counter：不是一个“类”，是一个 Data 对象</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch6">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起6 · 报文解析">▸</button>
+        <a class="side-link side-chapter" href="#ch6">6 · 报文解析</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch6-s1">6.1 先认标签：这张表要背下来</a>
+      <a class="side-link side-sub2" href="#ch6-s2">6.2 AARQ：建链请求逐字段</a>
+      <a class="side-link side-sub2" href="#ch6-s3">6.3 HLS 的 AARQ / AARE：挑战值装在哪</a>
+      <a class="side-link side-sub2" href="#ch6-s4">6.4 GET / SET / ACTION：三条最常用的服务</a>
+      <a class="side-link side-sub2" href="#ch6-s5">6.5 加密报文的三人家族</a>
+      <a class="side-link side-sub2" href="#table48">6.6 Table 48 三条报文全解析</a>
+      <a class="side-link side-sub2" href="#ch6-s7">6.7 general-ciphering：401 字节怎么排</a>
+      <a class="side-link side-sub2" href="#ch6-s8">6.7.1 general-glo 与 general-ciphering：差在哪、怎么选</a>
+      <a class="side-link side-sub2" href="#general-signing">6.7.2 general-signing：只签名，不加密</a>
+      <a class="side-link side-sub2" href="#ch6-s9">6.8 一段通用的解析流程</a>
+      <a class="side-link side-sub2" href="#ch6-s10">6.9 解析时最容易错的八件事</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch7">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起7 · 认证 0–7">▸</button>
+        <a class="side-link side-chapter" href="#ch7">7 · 认证 0–7</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch7-s1">7.1 三种认证等级</a>
+      <a class="side-link side-sub2" href="#ch7-s2">7.2 LLS：口令，明文，一趟</a>
+      <a class="side-link side-sub2" href="#ch7-s3">7.3 HLS：四趟，双向</a>
+      <a class="side-link side-sub2" href="#ch7-s4">7.4 八种 mechanism 逐个讲（0–7）</a>
+      <a class="side-link side-sub2" href="#ch7-s5">7.5 mechanism 5（GMAC）逐字节</a>
+      <a class="side-link side-sub2" href="#ch7-s6">7.6 mechanism 6（SHA-256）的输入顺序</a>
+      <a class="side-link side-sub2" href="#ch7-s7">7.7 mechanism 7（ECDSA）</a>
+      <a class="side-link side-sub2" href="#ch7-s8">7.8 mechanism 与 suite 的关系（结论）</a>
+      <a class="side-link side-sub2" href="#ch7-s9">7.9 认证相关字段速查</a>
+      <a class="side-link side-sub2" href="#ch7-s10">7.10 认证失败怎么查</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch8">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起8 · 密钥与轮换">▸</button>
+        <a class="side-link side-chapter" href="#ch8">8 · 密钥与轮换</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch8-s1">8.1 六类对称密钥</a>
+      <a class="side-link side-sub2" href="#ch8-s2">8.2 四条建立路径</a>
+      <a class="side-link side-sub2" href="#ch8-s3">8.3 key_transfer：用旧钥匙送新钥匙</a>
+      <a class="side-link side-sub2" href="#ch8-s4">8.4 KEK 轮换：用旧 KEK 包新 KEK</a>
+      <a class="side-link side-sub2" href="#ch8-s5">8.5 key_agreement：不传密钥，双方算出来</a>
+      <a class="side-link side-sub2" href="#ch8-s6">8.5.1 C(2e,0s) 的完整交互</a>
+      <a class="side-link side-sub2" href="#ch8-s7">8.6 general-ciphering 的三种 key-info</a>
+      <a class="side-link side-sub2" href="#ch8-s8">8.7 dedicated key：建链时顺手带一把</a>
+      <a class="side-link side-sub2" href="#ch8-s9">8.8 新密钥生效时，计数器怎么办</a>
+      <a class="side-link side-sub2" href="#ch8-s10">8.9 实现层的两个真实坑</a>
+      <a class="side-link side-sub2" href="#ch8-s11">8.10 一张表收口</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch9">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起9 · 端到端与排障">▸</button>
+        <a class="side-link side-chapter" href="#ch9">9 · 端到端与排障</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch9-s1">9.1 一次完整会话</a>
+      <a class="side-link side-sub2" href="#ch9-s2">9.2 配置清单：客户端 / 服务端各要什么</a>
+      <a class="side-link side-sub2" href="#ch9-s3">9.3 一个“策略 + 权限”的合成例子</a>
+      <a class="side-link side-sub2" href="#ch9-s4">9.4 十二个互操作陷阱</a>
+      <a class="side-link side-sub2" href="#ch9-s5">9.5 症状 → 原因 → 检查</a>
+      <a class="side-link side-sub2" href="#ch9-s6">9.6 选型决策树</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="ch10">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起10 · 自测与验证">▸</button>
+        <a class="side-link side-chapter" href="#ch10">10 · 自测与验证</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch10-s1">10.1 交叉验证记录</a>
+      <a class="side-link side-sub2" href="#ch10-s2">10.2 两处必须知道的“规范内部不一致”</a>
+      <a class="side-link side-sub2" href="#ch10-s3">10.3 自己跑一遍</a>
+      <a class="side-link side-sub2" href="#ch10-s4">10.4 如果只剩十分钟</a>
+      <a class="side-link side-sub2" href="#ch10-s5">10.5 术语表（按首字母）</a>
+      <a class="side-link side-sub2" href="#ch10-s6">10.6 继续读</a>
+      </div>
+    </div>
+    <div class="side-group" data-ch="lab">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起附录 A · 实战演练">▸</button>
+        <a class="side-link side-chapter" href="#lab">附录 A · 实战演练</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#lab-s1">A.1 先准备八个值</a>
+      <a class="side-link side-sub2" href="#lab-s2">A.2 第 0 步：先把对象读清楚</a>
+      <a class="side-link side-sub2" href="#lab-s3">A.3 第 1 步：建链</a>
+      <a class="side-link side-sub2" href="#lab-s4">A.4 第 2 步：HLS 的第 3/4 趟</a>
+      <a class="side-link side-sub2" href="#lab-s5">A.5 第 3 步：第一条受保护 GET</a>
+      <a class="side-link side-sub2" href="#lab-s6">A.6 第 4 步：换一把密钥</a>
+      <a class="side-link side-sub2" href="#lab-s7">A.7 第 5 步：拆链与记录</a>
+      <a class="side-link side-sub2" href="#lab-s8">A.8 首次对接记录表（可打印填写）</a>
+      <a class="side-link side-sub2" href="#lab-s9">A.9 十项放行检查</a>
+      </div>
+    </div>
   <div class="side-foot">
     <a href="index.html">← 返回课程首页</a><br>
     <a href="#">↑ 回到顶部</a><br>
@@ -219,10 +400,10 @@
 
 <div class="one-line"><b>一句话直觉：</b>套件是“工具箱”，策略是“必须用哪几件工具”，访问权限是“这个抽屉必须用几件工具才能开”，安全材料是“工具本身”，认证是“进门时怎么验身份”。</div>
 
-<h3>1.1 旋钮一：安全套件（security suite）</h3>
+<h3 id="ch1-s1">1.1 旋钮一：安全套件（security suite）</h3>
 <p>套件回答：<b>这条连接允许使用哪些算法、密钥多长</b>。它是“能力清单”，不是“保护等级”。取值只有 0 / 1 / 2（3–15 保留）。它存在蓝皮书 <b>Security setup 对象的属性 3</b>（class_id 64），由 Association 对象的 <code>security_setup_reference</code> 引用。</p>
 
-<h3>1.2 旋钮二：安全策略（security policy）</h3>
+<h3 id="ch1-s2">1.2 旋钮二：安全策略（security policy）</h3>
 <p>策略回答：<b>请求和响应分别“必须”被怎样保护</b>。它是 Security setup 的属性 2，一个 8 位枚举（蓝皮书 §4.4.7.2.2）：</p>
 
 <div class="table-scroll">
@@ -244,7 +425,7 @@
 
 <p>所以 <code>0x24</code> 读作：bit2+bit5 = <b>请求要认证、响应要认证</b>；<code>0x6C</code> = bit2+3+5+6 = <b>请求认证+加密、响应认证+加密</b>；<code>0x3C</code> = bit2+3+4+5 = 请求认证+加密+签名，响应只认证。<b>“0” 才表示完全不要求密码学保护。</b></p>
 
-<h3>1.3 旋钮三：访问权限（access rights）</h3>
+<h3 id="ch1-s3">1.3 旋钮三：访问权限（access rights）</h3>
 <p>访问权限回答：<b>具体某个对象的某个属性/方法，在这个 AA 里允许怎么访问、要求什么保护</b>。它不在 Security setup 里，而在 Association 对象的 <code>object_list</code> / <code>access_rights_list</code> 里，每个条目一个字节（Table 43）：</p>
 
 <div class="table-scroll">
@@ -269,7 +450,7 @@
   <p>蓝皮书 §4.4.7.2.2 原文：<i>“The access rights may require stronger protection than what is required by the security policy.”</i> 也就是说：策略说“要认证”，权限可以要求“认证+加密”；策略说“要加密”、权限只要求“认证”，实际仍然要加密。判定时把两边的保护位<b>取并集</b>（更严者）。</p>
 </div>
 
-<h3>1.4 旋钮四：安全材料（security material）</h3>
+<h3 id="ch1-s4">1.4 旋钮四：安全材料（security material）</h3>
 <p>材料回答：<b>用哪把钥匙、哪个证书、哪个计数器</b>。至少包括：</p>
 <ul>
   <li><b>EK</b>（encryption key，块密钥）、<b>AK</b>（authentication key，只进 AAD）；</li>
@@ -279,7 +460,7 @@
   <li>证书与私钥（Suite 1/2 才用）。</li>
 </ul>
 
-<h3>1.5 旋钮五：认证机制（authentication）</h3>
+<h3 id="ch1-s5">1.5 旋钮五：认证机制（authentication）</h3>
 <p>认证回答：<b>建链时，客户端/服务端怎么证明“我是我”</b>。三种等级：No security（最低级）、LLS（口令）、HLS（挑战应答，mechanism 2–7 共六种）。它发生在 <b>AA 建立阶段</b>，和“报文要不要加密”是完全独立的另一件事（见第 7 章）。</p>
 
 <div class="figure">
@@ -335,7 +516,7 @@
 <figcaption>图 1-1　五个旋钮。注意箭头：它们是“与”的关系，不是互相替代。</figcaption>
 </div>
 
-<h3>1.6 最容易混的六组概念</h3>
+<h3 id="ch1-s6">1.6 最容易混的六组概念</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>容易混的</th><th>正确的区分</th></tr></thead>
@@ -363,7 +544,7 @@
 
 <div class="one-line"><b>一句话直觉：</b>AES 是锁；GCM 是“带防拆封条的锁法”；GMAC 是“只贴封条不锁”；Key Wrap 是“装钥匙的信封”；SHA 是“指纹”；KDF 是“把共享秘密加工成能用的钥匙”。</div>
 
-<h3>2.1 AES：16 字节一块的锁</h3>
+<h3 id="ch2-s1">2.1 AES：16 字节一块的锁</h3>
 <p>AES（FIPS 197）是<b>分组密码</b>：一次处理 128 bit（16 字节），钥匙可以是 128/192/256 bit。DLMS 只用 128（Suite 0/1）和 256（Suite 2）。它本身只做“一块进、一块出”，不能直接处理任意长度的报文——那要靠“模式”。</p>
 
 <div class="grid2">
@@ -373,7 +554,7 @@
 
 <p>“同一块永远同一结果”既是优点（可预测、可用硬件加速），也是缺点：报文里重复的 <code>00</code>、重复的 OBIS 会在密文里暴露模式。所以需要 IV 和模式。</p>
 
-<h3>2.2 模式：ECB、CBC、CTR、GCM</h3>
+<h3 id="ch2-s2">2.2 模式：ECB、CBC、CTR、GCM</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>模式</th><th>怎么工作</th><th>能否并行</th><th>是否认证</th><th>DLMS 用吗</th></tr></thead>
@@ -396,7 +577,7 @@
 输入：K、IV、C、A、T
 输出：P，或者 FAIL（tag 不匹配）</div>
 
-<h3>2.3 DLMS 怎么填这五个参数</h3>
+<h3 id="ch2-s3">2.3 DLMS 怎么填这五个参数</h3>
 <div class="table-scroll">
 <table>
   <caption>绿皮书 §9.2.3.3.7.3–§9.2.3.3.7.6、Table 46</caption>
@@ -411,7 +592,7 @@
 </table>
 </div>
 
-<h3>2.4 三种保护组合：A 位与 E 位</h3>
+<h3 id="ch2-s4">2.4 三种保护组合：A 位与 E 位</h3>
 <p>SC 字节（Security Control）的 bit4 = A（认证），bit5 = E（加密），低 4 位 = 套件号，bit6 = Key_Set，bit7 = 压缩：</p>
 
 <div class="bytes">
@@ -446,7 +627,7 @@
   <p>§9.2.3.3.7.1 明说：仅加密时 tag “simply not computed and checked”。攻击者可以在密文里翻位，接收方照样解密，只是得到乱码——<b>没有任何完整性保证</b>。通用 GCM 库内部可能仍算出一个 tag，但协议不携带、不校验。</p>
 </div>
 
-<h3>2.5 用 Table 48 的三条报文对照</h3>
+<h3 id="ch2-s5">2.5 用 Table 48 的三条报文对照</h3>
 <pre><code>Sys-T = 4D4D4D0000BC614E    IC = 01234567
 EK    = 000102030405060708090A0B0C0D0E0F
 AK    = D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF
@@ -463,10 +644,10 @@ APDU  = C0010000080000010000FF0200        （13 B，读 Clock 属性 2）
   <p><b>① 读 SC</b>：低 4 位定套件，A/E 定“有没有 tag、AAD 放什么”。<b>② 读 IC</b>：用<b>发送方</b>的 system title 拼 <code>IV = Sys-T ‖ IC</code>。<b>③ 选钥匙</b>：GUEK / GBEK / dedicated / ephemeral（general-ciphering 看 key-info）。<b>④ 重建 AAD</b>：仅认证是 <code>SC‖AK‖明文APDU</code>；认证+加密是 <code>SC‖AK</code>；仅加密为空。<b>⑤ 验 tag 再解密</b>：A=1 必须先验 tag，失败就丢弃；A=0 没有 tag，直接解密（也就没有完整性保证）。</p>
 </div>
 
-<h3>2.6 GMAC：只贴封条</h3>
+<h3 id="ch2-s6">2.6 GMAC：只贴封条</h3>
 <p>GMAC = GCM 在 <code>P = 空</code> 时的特例，只对 AAD 生成 tag。DLMS 用它做两件事：仅认证的报文保护；HLS mechanism 5 的挑战应答（<code>T = GMAC(SC‖AK‖StoC)</code>）。<b>GMAC 仍然需要 IV</b>，不是“不加密就不用 IV”。</p>
 
-<h3>2.7 AES Key Wrap：装钥匙的信封</h3>
+<h3 id="ch2-s7">2.7 AES Key Wrap：装钥匙的信封</h3>
 <p>要把新钥匙安全送到对面，需要一把“钥匙的钥匙”KEK。AES-KW（RFC 3394）就是专用信封：</p>
 <ul>
   <li>输入 KEK + 密钥（n 个 64-bit 块，n ≥ 2）；</li>
@@ -481,7 +662,7 @@ APDU  = C0010000080000010000FF0200        （13 B，读 Clock 属性 2）
   AES-128-KW → <code>2E407E7FE4E742B77DC1B743516DE8455C77DC7C7391D924</code>（24 B），解包还原一致。</p>
 </div>
 
-<h3>2.8 SHA-256 / SHA-384：指纹</h3>
+<h3 id="ch2-s8">2.8 SHA-256 / SHA-384：指纹</h3>
 <p>哈希把任意长度输入压成固定长度输出，不可逆、难碰撞。DLMS 用它做 KDF、ECDSA 的预处理、HLS mechanism 6。它不是加密，也不能单独当 MAC 用（谁都能算）。</p>
 <div class="table-scroll">
 <table>
@@ -495,7 +676,7 @@ APDU  = C0010000080000010000FF0200        （13 B，读 Clock 属性 2）
 </table>
 </div>
 
-<h3>2.9 KDF：从共享秘密到能用的钥匙</h3>
+<h3 id="ch2-s9">2.9 KDF：从共享秘密到能用的钥匙</h3>
 <p>ECDH 算出的 Z 不能直接当 AES 钥匙；要先过 KDF。DLMS 用 NIST Concatenation KDF（SP 800-56A §5.8.1.1）：</p>
 
 <div class="hexbox">K(i) = Hash( counter(i) ‖ Z ‖ OtherInfo )
@@ -519,10 +700,10 @@ C(0e,2s) 时：AlgID ‖ IDU ‖ NonceU ‖ IDV</div>
 
 <p>Annex C.1 的向量：<code>Hash(00000001‖Z‖AlgID‖IDU‖IDV)</code> = <code>C5F4512846EDE51CFB8CCF59F08A694E002EDF66B4CB1739AC26A74E49712F46</code>，Suite 1 只取前 16 字节 <code>C5F4512846EDE51CFB8CCF59F08A694E</code>。SHA-256 输出 32 字节却只取 16，正是“实现容易把 Suite 2 也截成 16 字节”的诱因。</p>
 
-<h3>2.10 V.44：不是密码学</h3>
+<h3 id="ch2-s10">2.10 V.44：不是密码学</h3>
 <p>Suite 1/2 的算法表里有 V.44 压缩。它只省带宽，由 SC bit7 指示，压缩在加密之前。Suite 0 没有它。</p>
 
-<h3>2.11 用代码落地（Python，最小可用）</h3>
+<h3 id="ch2-s11">2.11 用代码落地（Python，最小可用）</h3>
 
 <p>DLMS 的 tag 是 <b>12 字节</b>，而不少库默认只支持 16 字节 tag。选库时先看它能不能指定 <code>mac_len</code>：</p>
 
@@ -574,7 +755,7 @@ k = hashlib.sha256((1).to_bytes(4, "big") + z + alg_id + idu + idv).digest()[:16
 
 <div class="one-line"><b>一句话直觉：</b>对称钥匙的问题是“怎么把钥匙安全送到对面”。非对称用一对数学上绑定的钥匙解决：<b>公钥可以公开</b>，私钥只有自己有。ECDH 用它“隔着公开信道算出一把共同的钥匙”；ECDSA 用它“签个名，谁都能验但只有你能签”。</div>
 
-<h3>3.1 椭圆曲线：一张有限的“点加法”表</h3>
+<h3 id="ch3-s1">3.1 椭圆曲线：一张有限的“点加法”表</h3>
 <p>椭圆曲线在素数域上是一组满足 <code>y² = x³ + ax + b (mod p)</code> 的点。它有一个很好的性质：<b>点可以相加</b>，而且“已知 G 和 dG，求 d”极难（椭圆曲线离散对数问题，ECDLP）。</p>
 
 <div class="grid2">
@@ -599,7 +780,7 @@ k = hashlib.sha256((1).to_bytes(4, "big") + z + alg_id + idu + idv).digest()[:16
   <p>DLMS 在协商报文/Annex C 的示例里把公钥写成 <b><code>FE2OS(x)‖FE2OS(y)</code></b>，即裸的 <code>X‖Y</code>：P-256 = 64 B，P-384 = 96 B（Annex C 的表注明确写了这一点）。而 OpenSSL/SEC1 的“未压缩点”是 <code>04‖X‖Y</code>，会多 1 字节。<b>直接把 OpenSSL 的输出塞进 key_data，长度就会是 65/97，对端按 64/96 解析必然错位。</b>先把 <code>04</code> 去掉再拼。</p>
 </div>
 
-<h3>3.2 ECDH：两个人各自算，得到同一个秘密</h3>
+<h3 id="ch3-s2">3.2 ECDH：两个人各自算，得到同一个秘密</h3>
 
 <p>ECDH 的核心只有一行：</p>
 
@@ -641,7 +822,7 @@ V 算：Z = d_V × Q_U
 <figcaption>图 3-1　ECDH 时序。公钥可以明文传输；真正的秘密 Z 从不传输。</figcaption>
 </div>
 
-<h3>3.3 三种 ECDH 方案：谁出临时钥匙，谁出长期钥匙</h3>
+<h3 id="ch3-s3">3.3 三种 ECDH 方案：谁出临时钥匙，谁出长期钥匙</h3>
 
 <p>NIST SP 800-56A 用 <code>C(e, s)</code> 描述方案：e = ephemeral（临时），s = static（长期）。DLMS 选了三种：</p>
 
@@ -671,7 +852,7 @@ V 算：Z = d_V × Q_U
 
 <p>KDF 的 OtherInfo 会随方案变化：C(2e,0s) 和 C(1e,1s) 是 <code>AlgID‖IDU‖IDV</code>；C(0e,2s) 中间多一个 <code>NonceU</code>（1 字节长度 + transaction-id）。</p>
 
-<h3>3.4 ECDSA：签名，不是加密</h3>
+<h3 id="ch3-s4">3.4 ECDSA：签名，不是加密</h3>
 
 <p>ECDSA 用私钥对消息的哈希签名，输出一对整数 <code>(r, s)</code>。任何人都能用公钥验证，但只有私钥持有者能生成。DLMS 规定用 <b>plain format</b>：<code>R‖S</code>，各占 <code>l = ⌈log₂n⌉</code> 字节，所以 P-256 签名固定 64 字节、P-384 固定 96 字节（§9.2.3.4.5）。</p>
 
@@ -687,7 +868,7 @@ V 算：Z = d_V × Q_U
 
 <p>注意是“先自己、后对方”，且挑战值也跟着换序。写反是最常见的“签名验不过”。完整的 Table 52 示例与验签代码见 <a href="#ch7">第 7 章 7.7.1</a>。</p>
 
-<h3>3.5 证书：把公钥和身份绑起来</h3>
+<h3 id="ch3-s5">3.5 证书：把公钥和身份绑起来</h3>
 <p>裸公钥没有身份信息，中间人可以替换。X.509 v3 证书用 CA 的签名把“主体身份 + 公钥 + 用途”绑在一起。DLMS 用到的证书类型（Security setup 属性 6）：</p>
 
 <div class="table-scroll">
@@ -703,7 +884,7 @@ V 算：Z = d_V × Q_U
 </div>
 <p class="small">两个字段是<b>独立组合</b>，不是一一对应：一台表既可以有“server + digital signature”，也可以有“server + key agreement”。对接时先看 entity 再看 type，别把签名证书拿去协商。</p>
 
-<h3>3.6 一张 X.509 v3 证书里有什么</h3>
+<h3 id="ch3-s6">3.6 一张 X.509 v3 证书里有什么</h3>
 
 <p>证书的本质是“CA 用私钥签了一段包含‘身份 + 公钥 + 用途’的数据”。结构只有三层：</p>
 
@@ -770,7 +951,7 @@ print(len(qe_raw))                                  # P-256: 64；P-384: 96</cod
 
 <div class="one-line"><b>一句话直觉：</b>Suite 0 = 只有对称；Suite 1 = 对称 + P-256 + SHA-256；Suite 2 = 对称加强 + P-384 + SHA-384。0 与 1 之间是“功能有无”，1 与 2 之间是“强度档位”。</div>
 
-<h3>4.1 Table 27 逐字对照</h3>
+<h3 id="ch4-s1">4.1 Table 27 逐字对照</h3>
 <div class="table-scroll">
 <table class="suite-table">
   <caption>绿皮书 Ed.11 Table 27（§9.2.3.7）</caption>
@@ -783,7 +964,7 @@ print(len(qe_raw))                                  # P-256: 64；P-384: 96</cod
 </table>
 </div>
 
-<h3>4.2 每个套件“能做什么、不能做什么”</h3>
+<h3 id="ch4-s2">4.2 每个套件“能做什么、不能做什么”</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>能力</th><th>Suite 0</th><th>Suite 1</th><th>Suite 2</th></tr></thead>
@@ -804,7 +985,7 @@ print(len(qe_raw))                                  # P-256: 64；P-384: 96</cod
 
 <p class="small">“HLS-6 + Suite 2”标 △ 是因为：机制 6 的公式固定用 SHA-256，而 Suite 2 的哈希是 SHA-384；规范没有把 mechanism 与 suite 硬绑定，所以互通上可能能跑，但严格按“套件算法集”应使用 mechanism 7（P-384 ECDSA）。这是<b>规范解读 + 工程判断</b>，不是原文的一句话。</p>
 
-<h3>4.3 三个常见误解</h3>
+<h3 id="ch4-s3">4.3 三个常见误解</h3>
 <div class="callout trap">
   <span class="label">误解 1：Suite 0 = 不加密</span>
   <p>错。Suite 0 的“认证加密”一栏就是 AES-GCM-128。它只是没有非对称算法。“不要求保护”是 <b>security policy = 0</b> 或 SC 的 A/E 都为 0，与套件号无关。Suite 0 + 强制加密是最常见的电表配置之一。</p>
@@ -818,7 +999,7 @@ print(len(qe_raw))                                  # P-256: 64；P-384: 96</cod
   <p>不能。套件是<b>配置</b>，不是协商出来的。两端必须一致；不一致时通常表现为：AARQ 被拒、解密失败、tag 对不上，或者能建链但第一条受保护报文就崩。排查时先核对两端的 <code>security_suite</code> 属性。</p>
 </div>
 
-<h3>4.4 怎么选</h3>
+<h3 id="ch4-s4">4.4 怎么选</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>你的约束</th><th>建议</th><th>理由</th></tr></thead>
@@ -844,7 +1025,7 @@ print(len(qe_raw))                                  # P-256: 64；P-384: 96</cod
 
 <div class="one-line"><b>一句话直觉：</b>设备上的安全不是“配置文件”，而是四个 COSEM 对象：<b>Association</b>（门禁规则）、<b>Security setup</b>（算法/策略/钥匙/证书）、<b>Data protection</b>（对数据点单独上锁）、<b>Invocation counter</b>（计数器）。你把它们读一遍，就知道这台表的安全底细。</div>
 
-<h3>5.1 四个对象的关系</h3>
+<h3 id="ch5-s1">5.1 四个对象的关系</h3>
 
 <div class="figure">
 <svg viewBox="0 0 680 300" role="img" aria-label="安全相关COSEM对象关系">
@@ -885,7 +1066,7 @@ print(len(qe_raw))                                  # P-256: 64；P-384: 96</cod
 <figcaption>图 5-1　四个对象。Association 决定“谁能做什么”，Security setup 决定“用什么算法/钥匙”，Data protection 决定“哪些数据点额外上锁”。</figcaption>
 </div>
 
-<h3>5.2 Security setup（class_id = 64, version = 1）</h3>
+<h3 id="ch5-s2">5.2 Security setup（class_id = 64, version = 1）</h3>
 
 <p>蓝皮书 §4.4.7。它“包含安全套件、安全策略、以及按 system title 标识的双方之间适用的安全材料；并提供提高安全等级、管理对称密钥、非对称密钥对和证书的方法”。</p>
 
@@ -989,7 +1170,7 @@ key_data = Qe,U ‖ ECDSA(key_id ‖ Qe,U)</code></pre>
 <h4>security_activate 的“棘轮”</h4>
 <p>假设当前 policy = <code>0x24</code>（请求认证、响应认证）。调用 <code>security_activate(0x6C)</code>（请求/响应都再加加密）可以；调用 <code>security_activate(0x10)</code>（只要求请求签名）会失败。<b>没有任何方法能把策略降回去</b>——要降只能改配置/重新 provisioning。这是防“攻击者先降级再攻击”的设计。</p>
 
-<h3>5.3 Association LN（class_id = 15, version = 3）</h3>
+<h3 id="ch5-s3">5.3 Association LN（class_id = 15, version = 3）</h3>
 
 <p>蓝皮书 §4.4.4。它建模一个 AA：可见对象、访问权限、应用上下文、认证机制、 secret、状态、安全对象引用、用户列表。</p>
 
@@ -1044,7 +1225,7 @@ object_list_element ::= structure {
 </table>
 </div>
 
-<h3>5.4 Association SN（class_id = 12, version = 4）</h3>
+<h3 id="ch5-s4">5.4 Association SN（class_id = 12, version = 4）</h3>
 
 <p>与 LN 的目的相同，只是用 SN 引用（short name）而不是 OBIS。属性更少，方法编号有历史包袱。</p>
 
@@ -1080,7 +1261,7 @@ object_list_element ::= structure {
 
 <p class="small"><b>注意：</b>v4 的 Association SN 已经没有 <code>add_object</code> / <code>remove_object</code>；不要照旧版资料去调方法 3/4。对接时先读 <code>object_list</code> 确认版本。</p>
 
-<h3>5.5 Data protection（class_id = 30, version = 0）</h3>
+<h3 id="ch5-s5">5.5 Data protection（class_id = 30, version = 0）</h3>
 
 <p>蓝皮书 §4.4.9。它不保护整条链路，而是<b>对 COSEM 数据本身</b>（属性值、方法参数/返回值）加解密/签名。典型用途：几个敏感数据点、Profile 缓冲、Push 数据、第三方端到端保护。</p>
 
@@ -1116,7 +1297,7 @@ object_list_element ::= structure {
 
 <p>这套参数与 general-ciphering 的字段是同一套语义：谁发的、发给谁、哪次交易、用哪把钥匙。区别是它保护的是“数据”，不是“APDU”。</p>
 
-<h3>5.6 Invocation counter：不是一个“类”，是一个 Data 对象</h3>
+<h3 id="ch5-s6">5.6 Invocation counter：不是一个“类”，是一个 Data 对象</h3>
 
 <div class="table-scroll">
 <table>
@@ -1150,7 +1331,7 @@ object_list_element ::= structure {
 
 <div class="one-line"><b>一句话直觉：</b>DLMS 报文是“套娃”：外层告诉你“这是什么、多长”，里层是安全头，再里层才是真正的 GET/SET/ACTION。解析就是<b>一层层剥，每剥一层都用长度字段自校验</b>。</div>
 
-<h3>6.1 先认标签：这张表要背下来</h3>
+<h3 id="ch6-s1">6.1 先认标签：这张表要背下来</h3>
 <div class="table-scroll">
 <table>
   <caption>绿皮书 §9.5 COSEMpdu 标签（十进制 → 十六进制）</caption>
@@ -1174,7 +1355,7 @@ object_list_element ::= structure {
 
 <p class="small">注意 glo 家族的请求/响应标签不是成对的 <code>+1</code>：读请求 C8、读响应 CC；写请求 C9、写响应 CD；方法请求 CB、方法响应 CF。照“请求+1”去猜会错。</p>
 
-<h3>6.2 AARQ：建链请求逐字段</h3>
+<h3 id="ch6-s2">6.2 AARQ：建链请求逐字段</h3>
 
 <p>下面这条是 LLS 的 AARQ，由本教程脚本构造并回读校验（口令 <code>12345678</code>）：</p>
 
@@ -1203,7 +1384,7 @@ object_list_element ::= structure {
 </table>
 </div>
 
-<h3>6.3 HLS 的 AARQ / AARE：挑战值装在哪</h3>
+<h3 id="ch6-s3">6.3 HLS 的 AARQ / AARE：挑战值装在哪</h3>
 
 <p>HLS-GMAC 的 AARQ 只比 LLS 多了两处：应用上下文改成加密版（<code>…01 02</code>），以及多了一个 <code>calling-AP-title</code>（system title）。挑战值仍然在 <code>calling-authentication-value</code> 里：</p>
 
@@ -1249,7 +1430,7 @@ object_list_element ::= structure {
   <p>绿皮书 §9.2.5.1 的 NOTE：<i>“The AARQ and the AARE APDUs themselves are not protected.”</i> 所以 LLS 的口令、HLS 的挑战值、system title、证书，都是明文走在建链报文里。LLS 的“安全”仅在于口令不被旁观者看到——如果下层没有 TLS/专网，旁观者能直接读到。<b>这也是为什么 LLS 只适合受控网络。</b></p>
 </div>
 
-<h3>6.4 GET / SET / ACTION：三条最常用的服务</h3>
+<h3 id="ch6-s4">6.4 GET / SET / ACTION：三条最常用的服务</h3>
 
 <pre><code>GET-request   C0  invoke-id  class-id(2)  OBIS(6)  attribute-id  [access-selection]
 GET-response  C4  invoke-id  result  [data]
@@ -1280,7 +1461,7 @@ ACTION-response C7  invoke-id  result  [return-data]</code></pre>
   01 01  02 02  16 01 00  09 18  2E 40 7E 7F … D9 24
 <span class="c">array(1) └ structure(2) └ enum=0 (GUEK) └ octet-string(24 B, AES-KW 结果)</span></div>
 
-<h3>6.5 加密报文的三人家族</h3>
+<h3 id="ch6-s5">6.5 加密报文的三人家族</h3>
 
 <div class="table-scroll">
 <table>
@@ -1345,7 +1526,7 @@ ACTION-response C7  invoke-id  result  [return-data]</code></pre>
   </noscript>
 </div>
 
-<h3>6.7 general-ciphering：401 字节怎么排</h3>
+<h3 id="ch6-s7">6.7 general-ciphering：401 字节怎么排</h3>
 
 <p>Table 49 的请求方向（客户端 → 服务端）是一个 ACCESS 请求，用 One-Pass DH 协商出的 EK。它的字段<b>大多是一串 A-XDR OCTET STRING</b>：每个字段“长度 + 值”，长度 0 表示空；<b>key-info 是例外</b>，它是带 CHOICE 的结构。</p>
 
@@ -1365,7 +1546,158 @@ ACTION-response C7  invoke-id  result  [return-data]</code></pre>
 
 <p><b>关键：</b>general-ciphering 没有“总长度”字段，解析时只能一个字段一个字段读。前五个 OCTET STRING 字段的第一个字节是长度；≥0x80 时要用 BER 长形式（<code>81 xx</code> / <code>82 xx xx</code>）；key-info 则按 <code>01</code>（存在）→ <code>02</code>（agreed-key）→ <code>01 01</code>（key-parameters）→ 长度+值 的顺序读。读错一个长度，后面全错位。</p>
 
-<h3>6.8 一段通用的解析流程</h3>
+<h3 id="ch6-s8">6.7.1 general-glo 与 general-ciphering：差在哪、怎么选</h3>
+
+<div class="one-line"><b>一句话：</b>两者都是“用 AES-GCM 保护任意 xDLMS APDU”的通用信封。区别在<b>信封上写多少路由/密钥信息</b>：general-glo 只写“谁发的”，general-ciphering 还写“发给谁、哪次交易、用哪把钥匙”。</div>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 47 / Table 29 / §9.5 ASN.1 对照。三者 SC/IC/tag 规则相同，差在外层字段</caption>
+  <thead><tr><th>能力 / 字段</th><th>general-glo（DB）</th><th>general-ded（DC）</th><th>general-ciphering（DD）</th></tr></thead>
+  <tbody>
+    <tr><td>用哪把密钥</td><td>GUEK 或 GBEK（SC 的 Key_Set 位选择）</td><td>dedicated key（本次 AA 专用）</td><td>key-info 三选一：identified / wrapped / agreed</td></tr>
+    <tr><td>system title</td><td>只有<b>发送方</b>一个</td><td>只有<b>发送方</b>一个</td><td><b>originator + recipient</b> 两个</td></tr>
+    <tr><td>transaction-id</td><td>—</td><td>—</td><td>有（Table 49 示例 8 B）</td></tr>
+    <tr><td>date-time / other-info</td><td>—</td><td>—</td><td>可选（长度 0 表示未带）</td></tr>
+    <tr><td>key-info</td><td>—</td><td>—</td><td>可选：显式指定 / 包装 / 协商密钥</td></tr>
+    <tr><td>第三方 ↔ 服务端</td><td>✗（客户端 ↔ 服务端）</td><td>✗（客户端 ↔ 服务端）</td><td><b>✓</b>（第三方端到端保护）</td></tr>
+    <tr><td>保护对象</td><td>xDLMS APDU</td><td>xDLMS APDU</td><td>xDLMS APDU <b>+ COSEM 数据</b>（Data protection）</td></tr>
+    <tr><td>压缩</td><td>✓（SC bit7）</td><td>✓（SC bit7）</td><td>✓（SC bit7）</td></tr>
+    <tr><td>外层开销</td><td>最小：tag + 长度 + 8 B ST + 长度</td><td>同 general-glo</td><td>大：tx + 两个 ST + date/other + key-info + 多个长度</td></tr>
+    <tr><td>每报文换密钥</td><td>✗</td><td>✗</td><td>✓（wrapped-key / agreed-key）</td></tr>
+    <tr><td>典型用途</td><td>已共享 GUEK/GBEK 的客户端-服务端；广播</td><td>一次 AA 一把专用密钥</td><td>第三方接入、临时密钥、审计字段、COSEM 数据保护</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>字节布局：差在哪一行</h4>
+<pre><code>general-glo：  DB  08 &lt;8 B 发送方 ST&gt;  &lt;len&gt;  SH  C  T
+general-ded：  DC  08 &lt;8 B 发送方 ST&gt;  &lt;len&gt;  SH  C  T
+
+general-ciphering：
+  DD
+  08 &lt;transaction-id&gt;
+  08 &lt;originator ST&gt;
+  08 &lt;recipient ST&gt;
+  00                         &lt;-- date-time，可空
+  00                         &lt;-- other-information，可空
+  01 02 01 01 81 80 &lt;...&gt;     &lt;-- key-info（可选）
+  &lt;len&gt; SH C T               &lt;-- ciphered-content</code></pre>
+
+<p><b>读法：</b>general-glo/ded 没有总 Len，只有 <code>system-title(L)</code> 和 <code>ciphered-content(L)</code> 两个 A-XDR OCTET STRING；general-ciphering 则是一串“长度 + 值”的字段，最后才是 ciphered-content。</p>
+
+<div class="callout key">
+  <span class="label">怎么选：三句话</span>
+  <ol>
+    <li><b>客户端 ↔ 服务端、已有 GUEK/GBEK、想省开销</b> → <code>general-glo</code>。它是最轻的通用信封，不带收件人、交易号、密钥信息。</li>
+    <li><b>本次 AA 想用一把独立密钥</b> → <code>general-ded</code>。布局与 general-glo 相同，只把钥匙换成 dedicated key。</li>
+    <li><b>第三方 ↔ 服务端、要临时密钥/审计字段/COSEM 数据</b> → <code>general-ciphering</code>。它多出来的字段不是“冗余”，而是路由、密钥和审计能力。</li>
+  </ol>
+</div>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>家族</th><th>优点</th><th>代价 / 坑</th></tr></thead>
+  <tbody>
+    <tr><td><code>general-glo</code></td><td>开销最小、解析最简单；不需要 per-message 密钥管理；适合资源受限的表</td><td>全局密钥泄露影响面大；没有收件人绑定、交易号、时间戳；不能第三方；Key_Set 位选错就取错钥匙</td></tr>
+    <tr><td><code>general-ded</code></td><td>同 general-glo 的简单布局；按 AA 隔离，比全局密钥更细</td><td>dedicated key 的建立/生命周期要管；仍不能第三方；仍无审计字段</td></tr>
+    <tr><td><code>general-ciphering</code></td><td>可用 identified / wrapped / agreed 三种密钥来源；支持第三方端到端；有 transaction-id、双 ST、date-time/other-info；可保护 COSEM 数据</td><td>开销最大、解析最复杂；key-info 读错一个长度就错位；双方 ST/证书/密钥管理更重</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <span class="label">别把“general”当成“同一种”</span>
+  <p>三者都是 AES-GCM，SC/IC/tag 的规则完全一样；<b>真正的区别是外层信封和密钥来源</b>。看到 <code>DB</code> 不要去找 key-info；看到 <code>DD</code> 也不要以为一定有 key-info——它是 OPTIONAL，可能用双方约定的默认密钥。</p>
+</div>
+
+<h3 id="general-signing">6.7.2 general-signing：只签名，不加密</h3>
+
+<div class="one-line"><b>一句话：</b><code>general-ciphering</code> 管“看不懂”，<code>general-signing</code> 管“赖不掉”。它不做加密，只对内容做 ECDSA 签名；内容仍然是明文。</div>
+
+<p><code>DF</code> 家族的 ASN.1 结构：</p>
+<pre><code>General-Signing ::= SEQUENCE {
+  transaction-id,
+  originator-system-title,
+  recipient-system-title,
+  date-time,
+  other-information,
+  content,          -- 被签的内容（通常是 xDLMS APDU）
+  signature         -- ECDSA，plain R‖S：P-256 64 B / P-384 96 B
+}</code></pre>
+
+<div class="table-scroll">
+<table>
+  <caption>general-ciphering 与 general-signing 的分工</caption>
+  <thead><tr><th>维度</th><th>general-ciphering（DD）</th><th>general-signing（DF）</th></tr></thead>
+  <tbody>
+    <tr><td>主要目的</td><td>保密性 + 完整性 + 来源认证</td><td>完整性 + 来源认证 + <b>不可否认</b></td></tr>
+    <tr><td>算法</td><td>AES-GCM（对称）</td><td>ECDSA（非对称）</td></tr>
+    <tr><td>密钥</td><td>GUEK / KEK 包装 / ECDH 协商</td><td>签名私钥；对方用公钥/证书验签</td></tr>
+    <tr><td>内容是否明文</td><td>密文</td><td><b>明文</b></td></tr>
+    <tr><td>主要字段</td><td>tx、双方 ST、date-time、other-info、key-info、ciphered-content</td><td>tx、双方 ST、date-time、other-info、content、signature</td></tr>
+    <tr><td>完整性载体</td><td>12 B GCM tag</td><td>64 / 96 B ECDSA 签名</td></tr>
+    <tr><td>第三方 ↔ 服务端</td><td>✓</td><td>✓</td></tr>
+    <tr><td>压缩</td><td>✓（SC bit7）</td><td>✗（Table 44：No compression）</td></tr>
+    <tr><td>套件要求</td><td>Suite 0/1/2 都能用</td><td>需要 ECDSA：Suite 1（P-256）/ Suite 2（P-384）；Suite 0 不行</td></tr>
+    <tr><td>典型场景</td><td>怕内容被看到：读数、密钥、隐私数据</td><td>怕对方事后否认：计费/结算、指令回执、第三方审计</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>字节布局</h4>
+<pre><code>DF
+  08 &lt;transaction-id&gt;
+  08 &lt;originator ST&gt;
+  08 &lt;recipient ST&gt;
+  00                         &lt;-- date-time，可空
+  00                         &lt;-- other-information，可空
+  &lt;len&gt; &lt;content：被签的 APDU&gt;
+  &lt;len&gt; &lt;signature：64 / 96 B&gt;</code></pre>
+
+<div class="callout warn">
+  <span class="label">它和 GCM 报文不是一套东西</span>
+  <p>general-signing 没有 <code>SC</code>、没有 <code>IC</code>、没有 GCM 的 12 B tag，也不压缩。它用 ECDSA 私钥签 <code>content</code>，对方用公钥/证书验签。签名格式是 <b>plain <code>R‖S</code></b>；用 Python/OpenSSL 验签前要先转 DER（见 7.7.1 的 <code>plain_to_der()</code>）。</p>
+</div>
+
+<h4>使用场景</h4>
+<ul>
+  <li><b>不可否认的计费/结算数据</b>：服务端把关键读数签名后交给第三方，第三方事后不能否认收到过；客户端也不能伪造服务端的私钥签名。</li>
+  <li><b>第三方审计/监管</b>：第三方对数据签名，客户端只负责转发；服务端验签后，知道数据确实来自该第三方，而不是客户端自己编的。</li>
+  <li><b>指令回执</b>：对“已执行某条控制命令”的响应签名，便于事后追责。</li>
+  <li><b>与加密叠加</b>：需要同时保密和不可否认时，通常<b>先签名、再加密</b>（§9.2.7.3）；接收方先解密，再验签。第三方签名、客户端加密的分层场景也属于这一类。</li>
+</ul>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>优点</th><th>代价 / 坑</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>提供<b>不可否认</b>：只有私钥持有者能生成签名；内容被改、签名就对不上；可跨方验证（公钥/证书）</td>
+      <td><b>不提供保密性</b>：content 是明文；需要保密时必须再叠一层 ciphering</td>
+    </tr>
+    <tr>
+      <td>可以与 ciphering 分层：第三方签名、客户端加密、服务端解密后验签</td>
+      <td>需要 PKI/证书与签名私钥管理；Suite 0 没有 ECDSA，做不了</td>
+    </tr>
+    <tr>
+      <td>签名可长期留存，供事后审计</td>
+      <td>签名 64/96 B，外加 tx/双方 ST/date-time/other-info，开销比 GCM tag 大</td>
+    </tr>
+    <tr>
+      <td>不依赖双方共享对称密钥，适合第三方场景</td>
+      <td>ECDSA 验签有计算成本；私钥泄露则“不可否认”失效；重放仍需应用层用 transaction-id/date-time 等字段判断</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout key">
+  <span class="label">怎么选：一句话</span>
+  <p><b>要“别人看不到” → general-ciphering；要“事后赖不掉” → general-signing；两者都要 → 先签后加密。</b>只签名不加密时，别把 content 里的敏感字段当成已保护——它仍然是明文。</p>
+</div>
+
+<h3 id="ch6-s9">6.8 一段通用的解析流程</h3>
 
 <div class="flow">
   <div class="step"><b>① 定帧</b><span>HDLC / wrapper 去掉，拿到 APDU</span></div>
@@ -1393,7 +1725,7 @@ elif tag == 0x60:
     parse_aarq(apdu)
 ...</code></pre>
 
-<h3>6.9 解析时最容易错的八件事</h3>
+<h3 id="ch6-s10">6.9 解析时最容易错的八件事</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>现象</th><th>原因</th><th>怎么查</th></tr></thead>
@@ -1423,7 +1755,7 @@ elif tag == 0x60:
 
 <div class="one-line"><b>一句话直觉：</b>认证只回答“门开不开”，不回答“屋里说话要不要加密”。mechanism 0–7 共八个：0 不认证、1 报口令、2–7 是 HLS 的六种挑战应答。套件不决定“用哪个机制”，但决定“这个机制的算法能不能算出来”。</div>
 
-<h3>7.1 三种认证等级</h3>
+<h3 id="ch7-s1">7.1 三种认证等级</h3>
 
 <div class="table-scroll">
 <table>
@@ -1475,7 +1807,7 @@ elif tag == 0x60:
 <figcaption>图 7-1　HLS 四趟。① ② 在 AARQ/AARE 里；③ ④ 是 Association 对象的 reply_to_HLS_authentication 方法调用与返回。</figcaption>
 </div>
 
-<h3>7.2 LLS：口令，明文，一趟</h3>
+<h3 id="ch7-s2">7.2 LLS：口令，明文，一趟</h3>
 
 <p>LLS 的流程只有一句话：客户端在 AARQ 的 <code>calling-authentication-value</code> 里放口令，服务端拿它和 Association 对象的 <code>secret</code> 比较。相符就建链，不符就拒绝。</p>
 
@@ -1487,7 +1819,7 @@ elif tag == 0x60:
   <p>① 口令明文走在 AARQ 里，AARQ 本身不受保护；② 只有单向认证，服务端不证明自己；③ 没有挑战，抓包可重放（虽然重放要先能建 TCP/链路）。所以 LLS 只适合“专网 + 物理受控 + 口令定期换”的场景。要改口令，用 Association 的 <code>change_secret</code> / <code>change_HLS_secret</code> 方法。</p>
 </div>
 
-<h3>7.3 HLS：四趟，双向</h3>
+<h3 id="ch7-s3">7.3 HLS：四趟，双向</h3>
 
 <p>HLS 的目标是双向认证：客户端证明自己，服务端也证明自己。做法是双方各出一个随机挑战，各自用共享秘密/密钥处理对方的挑战。</p>
 
@@ -1500,7 +1832,7 @@ elif tag == 0x60:
 
 <p>可选的 system title / 证书：如果双方事先不知道对方的 system title，就在 <code>calling-AP-title</code> / <code>responding-AP-title</code> 里带；mechanism 7 还可以在 <code>calling-AE-qualifier</code> / <code>responding-AE-qualifier</code> 里带签名证书。已经知道就不必带。</p>
 
-<h3>7.4 八种 mechanism 逐个讲（0–7）</h3>
+<h3 id="ch7-s4">7.4 八种 mechanism 逐个讲（0–7）</h3>
 
 <div class="callout key">
   <span class="label">先回答“mechanism 与 suite 有关系吗”</span>
@@ -1650,7 +1982,7 @@ f(CtoS) = ECDSA(SysT-S ‖ SysT-C ‖ CtoS ‖ StoC)</code></pre>
   <p>① 服务器直接拒绝 AARQ（mechanism 不支持）；② AARQ 通过，但第 3 趟 <code>f(StoC)</code> 算不出来/对不上（算法不可用）；③ 两端都“支持”但强度不同（例如 Suite 2 用 mechanism 6），能通但不满足套件强度。<b>排查时先看 AARQ 的 mechanism OID，再看 Security setup 的 suite，不要只看其中一边。</b></p>
 </div>
 
-<h3>7.5 mechanism 5（GMAC）逐字节</h3>
+<h3 id="ch7-s5">7.5 mechanism 5（GMAC）逐字节</h3>
 
 <p>GMAC 的公式看着简单，但有两个容易错的点：<b>IV 用谁的</b>、<b>输出里带什么</b>。</p>
 
@@ -1672,14 +2004,14 @@ IV = 计算方自己的 Sys-T ‖ 自己的 IC    <span class="c">规范未明�
 
 <p><b>判定证据：</b>规范印出的 f(StoC) 里 IC 是 <code>00000001</code>（客户端的计数器），f(CtoS) 里是 <code>01234567</code>（服务端的）。这直接说明“谁算，就用谁的 IV”。这条没有在 §9.2.7.4 明写，属于<b>反推 + 向量验证</b>；对接真实设备必须实测。</p>
 
-<h3>7.6 mechanism 6（SHA-256）的输入顺序</h3>
+<h3 id="ch7-s6">7.6 mechanism 6（SHA-256）的输入顺序</h3>
 
 <div class="hexbox">f(StoC) = SHA-256( Secret ‖ SysT-C ‖ SysT-S ‖ StoC ‖ CtoS )
 f(CtoS) = SHA-256( Secret ‖ SysT-S ‖ SysT-C ‖ CtoS ‖ StoC )</div>
 
 <p>注意三个“反”：<b>自己在前、对方在后</b>；<b>挑战值顺序跟着换</b>；<b>secret 永远在最前</b>。输出是 32 字节裸哈希，没有长度前缀，也没有 SC/IC。</p>
 
-<h3>7.7 mechanism 7（ECDSA）</h3>
+<h3 id="ch7-s7">7.7 mechanism 7（ECDSA）</h3>
 
 <div class="hexbox">客户端签：ECDSA( SysT-C ‖ SysT-S ‖ StoC ‖ CtoS )
 服务端签：ECDSA( SysT-S ‖ SysT-C ‖ CtoS ‖ StoC )
@@ -1723,7 +2055,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
 
 <p class="small">这也说明“签名算法”和“签名格式”是两件事：算法是 ECDSA-P256-SHA256，格式是 DLMS 的 <code>R‖S</code>。证书内部的 <code>signatureValue</code> 则按 X.509 用 DER——两层编码不同，不要用同一个解析器套两处。</p>
 
-<h3>7.8 mechanism 与 suite 的关系（结论）</h3>
+<h3 id="ch7-s8">7.8 mechanism 与 suite 的关系（结论）</h3>
 
 <p>完整的 8×3 矩阵在 <a href="#ch7">7.4.9</a>，这里只留三句话：</p>
 <ol>
@@ -1732,7 +2064,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
   <li><b>5 三档都能用；6 是 Suite 1 原生；7 随套件选曲线</b>：GMAC 用 AES-GCM（三档都有）；SHA-256 只在 Suite 1 的算法集里；ECDSA 在 Suite 1 用 P-256、Suite 2 用 P-384。Suite 0 没有 6/7 需要的哈希/ECDSA。</li>
 </ol>
 
-<h3>7.9 认证相关字段速查</h3>
+<h3 id="ch7-s9">7.9 认证相关字段速查</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>字段</th><th>位置</th><th>用途</th></tr></thead>
@@ -1752,7 +2084,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
 </table>
 </div>
 
-<h3>7.10 认证失败怎么查</h3>
+<h3 id="ch7-s10">7.10 认证失败怎么查</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>现象</th><th>最可能的原因</th><th>检查顺序</th></tr></thead>
@@ -1780,7 +2112,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
 
 <div class="one-line"><b>一句话直觉：</b>DLMS 的密钥是一棵树：<b>KEK 在最上面</b>，下面挂着 GUEK / GBEK / GAK；临时用的 dedicated / ephemeral key 是另一条支线。树的根只能带外灌装，或者用 ECDH 协商出来；树的其他部分可以用 KEK 包着送。</div>
 
-<h3>8.1 六类对称密钥</h3>
+<h3 id="ch8-s1">8.1 六类对称密钥</h3>
 <div class="table-scroll">
 <table>
   <caption>Table 28 · 对称密钥类型</caption>
@@ -1834,7 +2166,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
 <figcaption>图 8-1　密钥树。KEK 是根；GUEK/GBEK/GAK 是长期枝叶；dedicated/ephemeral 是一次性枝叶。</figcaption>
 </div>
 
-<h3>8.2 四条建立路径</h3>
+<h3 id="ch8-s2">8.2 四条建立路径</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>路径</th><th>怎么走</th><th>能建立哪些密钥</th><th>前提</th></tr></thead>
@@ -1847,7 +2179,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
 </table>
 </div>
 
-<h3>8.3 key_transfer：用旧钥匙送新钥匙</h3>
+<h3 id="ch8-s3">8.3 key_transfer：用旧钥匙送新钥匙</h3>
 
 <div class="flow">
   <div class="step"><b>① 生成</b><span>客户端随机生成新密钥（GUEK/GBEK/GAK/KEK）</span></div>
@@ -1866,7 +2198,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
   <p>蓝皮书 §4.4.7.3.2：如果任意一把钥匙解包失败，方法调用失败，<b>所有钥匙都不改变</b>。这很重要——传三把钥匙时，不能出现“前两把生效、第三把失败”的半吊子状态。实现时先把所有 key_wrapped 解包、校验，全部通过后再一次性替换。</p>
 </div>
 
-<h3>8.4 KEK 轮换：用旧 KEK 包新 KEK</h3>
+<h3 id="ch8-s4">8.4 KEK 轮换：用旧 KEK 包新 KEK</h3>
 
 <div class="table-scroll">
 <table>
@@ -1883,7 +2215,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
 
 <p>典型事故：第 4 步成功后，客户端还在用旧 KEK 包下一把钥匙 → 服务端用新 KEK 解，失败。记住“<b>success 返回的那一刻，旧 KEK 就作废了</b>”。</p>
 
-<h3>8.5 key_agreement：不传密钥，双方算出来</h3>
+<h3 id="ch8-s5">8.5 key_agreement：不传密钥，双方算出来</h3>
 
 <p>用 Security setup 的方法 3。请求参数是一个数组，每个元素：</p>
 <pre><code>key_agreement_data ::= structure {
@@ -1907,7 +2239,7 @@ pub.verify(plain_to_der(f_stoc), msg, ec.ECDSA(hashes.SHA256()))</code></pre>
   <p>ECDH 只给出 Z。最终密钥 = KDF(Z, AlgID, PartyU, PartyV)。AlgID 要区分用途：协商 GUEK/GAK 用 AES-GCM 的 OID，协商 KEK 用 AES-WRAP 的 OID。用错 AlgID，派生出的密钥“看起来也是 16 字节”，但两边对不上。</p>
 </div>
 
-<h3>8.5.1 C(2e,0s) 的完整交互</h3>
+<h3 id="ch8-s6">8.5.1 C(2e,0s) 的完整交互</h3>
 
 <div class="figure">
 <svg viewBox="0 0 680 330" role="img" aria-label="Security setup key_agreement 交互">
@@ -1971,7 +2303,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
   <p>ECDSA 每次签名用的随机数不同，同一把私钥、同一段消息，两次签出的 <code>r,s</code> 通常不一样。所以：<b>验证签名要验签，不能拿两条签名做字节比较</b>。对接测试时，看到两次 key_agreement 报文里的签名不同是正常的。</p>
 </div>
 
-<h3>8.6 general-ciphering 的三种 key-info</h3>
+<h3 id="ch8-s7">8.6 general-ciphering 的三种 key-info</h3>
 
 <p>这条路径最灵活：不用事先约定“用哪把钥匙”，而是在报文里说明。三种 CHOICE（Table 29）：</p>
 
@@ -1988,7 +2320,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 
 <p><code>key-parameters</code>：<code>0x01</code> = C(1e,1s)，<code>0x02</code> = C(0e,2s)，其余保留。agreed-key 的 <code>key-ciphered-data</code> 在 C(1e,1s) 下是 <code>Qe,U‖签名</code>；在 C(0e,2s) 下是空串，另用 NonceU 区分交易。</p>
 
-<h3>8.7 dedicated key：建链时顺手带一把</h3>
+<h3 id="ch8-s8">8.7 dedicated key：建链时顺手带一把</h3>
 
 <p>客户端在 AARQ 的 InitiateRequest 里放 <code>dedicated-key</code>。一旦存在：</p>
 <ul>
@@ -2000,7 +2332,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 
 <p>它适合“一次会话一把钥匙”的场景：比全局密钥更隔离，又不需要走一遍 ECDH。</p>
 
-<h3>8.8 新密钥生效时，计数器怎么办</h3>
+<h3 id="ch8-s9">8.8 新密钥生效时，计数器怎么办</h3>
 
 <div class="table-scroll">
 <table>
@@ -2014,7 +2346,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 </table>
 </div>
 
-<h3>8.9 实现层的两个真实坑</h3>
+<h3 id="ch8-s10">8.9 实现层的两个真实坑</h3>
 
 <div class="callout trap">
   <span class="label">坑 1：Suite 2 的密钥被截成 16 字节</span>
@@ -2026,7 +2358,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
   <p>Gurux 的默认 EK/AK 就是 Table 48 的 <code>000102…0F</code> / <code>D0D1…DF</code>，默认 system title 是 ASCII <code>ABCDEFGH</code>，示例服务端 KEK 是 <code>1111111111111111</code>。这些值在教程里很好用，但<b>绝不能出现在现场设备</b>。对接前先读 Security setup 的 system title，看到 <code>41 42 43 44 45 46 47 48</code> 就知道是默认值。</p>
 </div>
 
-<h3>8.10 一张表收口</h3>
+<h3 id="ch8-s11">8.10 一张表收口</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>你想做的事</th><th>用哪个方法/字段</th><th>前提</th><th>成功后</th></tr></thead>
@@ -2055,7 +2387,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 
 <div class="one-line"><b>一句话直觉：</b>把前面八章串起来，一次完整的安全生产就是：<b>灌装 → 建链认证 → （可选）换钥匙 → 受保护读写 → 轮换 → 拆链</b>。每一步都有“谁读哪个对象、哪个字段必须对上”。</div>
 
-<h3>9.1 一次完整会话</h3>
+<h3 id="ch9-s1">9.1 一次完整会话</h3>
 
 <div class="figure">
 <svg viewBox="0 0 680 430" role="img" aria-label="DLMS安全端到端流程">
@@ -2092,7 +2424,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 <figcaption>图 9-1　端到端。注意 ② 与 ⑤ 是两套独立的安全：建链认证 vs 报文保护。</figcaption>
 </div>
 
-<h3>9.2 配置清单：客户端 / 服务端各要什么</h3>
+<h3 id="ch9-s2">9.2 配置清单：客户端 / 服务端各要什么</h3>
 
 <div class="table-scroll">
 <table>
@@ -2112,7 +2444,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 </table>
 </div>
 
-<h3>9.3 一个“策略 + 权限”的合成例子</h3>
+<h3 id="ch9-s3">9.3 一个“策略 + 权限”的合成例子</h3>
 
 <p>假设 Security setup 的 <code>security_policy = 0x24</code>（请求认证、响应认证），某个属性的 <code>access_mode = 0x6F</code>（read + write + 请求认证+加密 + 响应认证+加密）。合成规则是“取更严”：</p>
 
@@ -2128,7 +2460,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 
 <p>如果 access_mode 是 <code>0x03</code>（只读+写，没有保护位），则实际执行 policy 的“认证”。如果 policy 是 0、access 是 0x03，则完全明文。这就是“为什么改了 policy 还是不加密/还是加密”的答案：<b>另一个旋钮可能更严</b>。</p>
 
-<h3>9.4 十二个互操作陷阱</h3>
+<h3 id="ch9-s4">9.4 十二个互操作陷阱</h3>
 
 <div class="table-scroll">
 <table>
@@ -2150,7 +2482,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 </table>
 </div>
 
-<h3>9.5 症状 → 原因 → 检查</h3>
+<h3 id="ch9-s5">9.5 症状 → 原因 → 检查</h3>
 
 <div class="table-scroll">
 <table>
@@ -2172,7 +2504,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 </table>
 </div>
 
-<h3>9.6 选型决策树</h3>
+<h3 id="ch9-s6">9.6 选型决策树</h3>
 
 <pre><code>需要协议内协商/证书/签名吗？
 ├─ 否 → Suite 0
@@ -2256,7 +2588,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
   </details>
 </div>
 
-<h3>10.1 交叉验证记录</h3>
+<h3 id="ch10-s1">10.1 交叉验证记录</h3>
 
 <p>这份教程里的关键数字不是“我记得”，而是逐项对过原文或跑过脚本。下表是核查台账：</p>
 
@@ -2284,7 +2616,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
 </table>
 </div>
 
-<h3>10.2 两处必须知道的“规范内部不一致”</h3>
+<h3 id="ch10-s2">10.2 两处必须知道的“规范内部不一致”</h3>
 
 <div class="callout warn">
   <span class="label">① ECDSA 的两种编码：不是冲突，是两层</span>
@@ -2296,7 +2628,7 @@ def build_key_data(signing_key, key_id, qe_raw, bits=256):
   <p>Table 50 只给出 <code>f(x)=SC‖IC‖T</code>，没有写 IV 怎么拼、IC 何时递增。Table 51 的两条向量可以反推出“本端 ST‖IC”，但递增规则仍需按设备实测。<b>工程处理：</b>把 GMAC 的 IC 当作“本端计数器”，每次 HLS 认证后按设备行为递增；首次对接先抓两条连续认证，确认 IC 变化。</p>
 </div>
 
-<h3>10.3 自己跑一遍</h3>
+<h3 id="ch10-s3">10.3 自己跑一遍</h3>
 
 <pre><code>cd D:\project\personal\teach-me\dlms
 
@@ -2311,7 +2643,7 @@ python assets\check-workspace.py</code></pre>
 
 <p class="small">如果 <code>cryptography</code> 不在默认解释器里，用本工作区准备好的隔离环境：<code>C:\Users\quill\.workbuddy\binaries\python\envs\dlms\Scripts\python.exe</code>。</p>
 
-<h3>10.4 如果只剩十分钟</h3>
+<h3 id="ch10-s4">10.4 如果只剩十分钟</h3>
 
 <div class="callout key">
   <span class="label">带走这七句</span>
@@ -2326,7 +2658,7 @@ python assets\check-workspace.py</code></pre>
   </ol>
 </div>
 
-<h3>10.5 术语表（按首字母）</h3>
+<h3 id="ch10-s5">10.5 术语表（按首字母）</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>术语</th><th>全称 / 中文</th><th>一句话</th></tr></thead>
@@ -2355,7 +2687,7 @@ python assets\check-workspace.py</code></pre>
 </table>
 </div>
 
-<h3>10.6 继续读</h3>
+<h3 id="ch10-s6">10.6 继续读</h3>
 <ul>
   <li><a href="lessons/0007-crypto-symmetric-deep.html">第 7 课 · 对称算法更细的版本</a>（含更多图示与练习）</li>
   <li><a href="lessons/0002-apdu-byte-level-crypto.html">第 2 课 · 报文拆分器</a>（可粘贴 hex 逐字段拆）</li>
@@ -2373,7 +2705,7 @@ python assets\check-workspace.py</code></pre>
 
 <div class="one-line"><b>这一节怎么用：</b>拿一台表（或模拟器），按“读对象 → 建链 → HLS → 第一条受保护 GET → 换密钥 → 拆链”走一遍。每一步都写清“发什么、期望什么、失败先查什么”。不要跳步——安全对接的坑几乎都在跳步里。</div>
 
-<h3>A.1 先准备八个值</h3>
+<h3 id="lab-s1">A.1 先准备八个值</h3>
 <div class="table-scroll">
 <table>
   <thead><tr><th>值</th><th>从哪来</th><th>示例</th></tr></thead>
@@ -2390,7 +2722,7 @@ python assets\check-workspace.py</code></pre>
 </table>
 </div>
 
-<h3>A.2 第 0 步：先把对象读清楚</h3>
+<h3 id="lab-s2">A.2 第 0 步：先把对象读清楚</h3>
 
 <div class="flow">
   <div class="step"><b>① 读 Association 的引用</b><span>LN 属性 9 / SN 属性 4：<code>security_setup_reference</code></span></div>
@@ -2408,7 +2740,7 @@ python assets\check-workspace.py</code></pre>
   <p><b>不要假设</b> Security setup 一定在 <code>0-0:43.0.0.255</code>——先读 Association 的引用；<b>不要假设</b>版本是 1——version 0 的 policy 是枚举 0–3、没有 certificates；<b>不要假设</b> IC 是全局一个——不同通信通道可能各有一个。</p>
 </div>
 
-<h3>A.3 第 1 步：建链</h3>
+<h3 id="lab-s3">A.3 第 1 步：建链</h3>
 
 <p>按认证机制选 AARQ 的字段：</p>
 <div class="table-scroll">
@@ -2425,7 +2757,7 @@ python assets\check-workspace.py</code></pre>
 
 <p>期望：AARE 的 <code>result = accepted(0)</code>。失败先看 <code>result-source-diagnostic</code>：3 = calling-AP-title 不识别（system title 没登记）；1/2 = 应用上下文/机制不支持。</p>
 
-<h3>A.4 第 2 步：HLS 的第 3/4 趟</h3>
+<h3 id="lab-s4">A.4 第 2 步：HLS 的第 3/4 趟</h3>
 
 <ol>
   <li>按第 7 章的公式算 <code>f(StoC)</code>；GMAC 用本端 <code>Sys-T‖IC</code>。</li>
@@ -2438,7 +2770,7 @@ python assets\check-workspace.py</code></pre>
   <p>① GMAC 的 secret 是否从 <b>Security setup</b> 读（不是 Association 的 secret）；② IV 是否用了<b>本端</b>的 <code>Sys-T‖IC</code>；③ SHA-256/ECDSA 的输入顺序是否“先自己、后对方”，挑战值是否跟着换序。</p>
 </div>
 
-<h3>A.5 第 3 步：第一条受保护 GET</h3>
+<h3 id="lab-s5">A.5 第 3 步：第一条受保护 GET</h3>
 
 <p>还是读 Security setup 属性 2，但这次套上 SC/SH/GCM：</p>
 <div class="hexbox">SC = 30（Suite 0，认证+加密）
@@ -2450,7 +2782,7 @@ P  = C0 01 00 40 00 00 2B 00 00 FF 02
 
 <p>期望：响应也是受保护的（按 policy + access rights 取更严者）；用服务端 system title + 响应里的 IC 重建 IV 解密。若 tag 失败，按“IV → 密钥 → AAD”顺序查，不要先怀疑算法。</p>
 
-<h3>A.6 第 4 步：换一把密钥</h3>
+<h3 id="lab-s6">A.6 第 4 步：换一把密钥</h3>
 
 <ol>
   <li>客户端生成新 GUEK（16/32 B，随套件）。</li>
@@ -2465,11 +2797,11 @@ P  = C0 01 00 40 00 00 2B 00 00 FF 02
   <p><b>先生成 → 再包装 → 再调用 → success 后才切换本地密钥。</b>不要在发请求前就把本地旧密钥丢掉；否则服务端返回失败时，你连回退都做不了。</p>
 </div>
 
-<h3>A.7 第 5 步：拆链与记录</h3>
+<h3 id="lab-s7">A.7 第 5 步：拆链与记录</h3>
 
 <p>发 RLRQ / 收 RLRE；如果 AA 使用 ciphering，<code>user-information</code> 里可能带一个受保护的 Initiate。拆链后记录：套件、策略、认证机制、system title、密钥版本、IC 当前值、最后一条报文的 tag 结果。</p>
 
-<h3>A.8 首次对接记录表（可打印填写）</h3>
+<h3 id="lab-s8">A.8 首次对接记录表（可打印填写）</h3>
 
 <div class="table-scroll">
 <table>
@@ -2489,7 +2821,7 @@ P  = C0 01 00 40 00 00 2B 00 00 FF 02
 </table>
 </div>
 
-<h3>A.9 十项放行检查</h3>
+<h3 id="lab-s9">A.9 十项放行检查</h3>
 
 <div class="recall">
   <details open>
