@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DLMS 安全算法工作台</title>
+<script>
+window.addEventListener("error", function (e) {
+  document.documentElement.setAttribute("data-js-error", (e.message || "") + " @ " + (e.filename || "") + ":" + (e.lineno || 0));
+});
+window.addEventListener("unhandledrejection", function (e) {
+  document.documentElement.setAttribute("data-js-rejection", (e.reason && e.reason.message) ? e.reason.message : String(e.reason));
+});
+</script>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.4-2.9 7.4-7 9-4.1-1.6-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M17 4h3v3"/></symbol>
+  <symbol id="i-finger" viewBox="0 0 24 24"><path d="M12 11a3 3 0 0 1 3 3v4"/><path d="M8 14a4 4 0 0 1 8 0v3"/><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 7v1"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></symbol>
+  <symbol id="i-badge" viewBox="0 0 24 24"><path d="M12 3l2.4 1.9 3 .3.3 3L20 11l-2.3 2.8.3 3-3 .3L12 19l-2.4-1.9-3-.3-.3-3L4 11l2.3-2.8-.3-3 3-.3L12 3z"/><path d="M9 11l2 2 4-4"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M9 5H5v14h4M15 5h4v14h-4"/><path d="M13 8l-2 8"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L5 19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2L14 9V3"/><path d="M8 15h8"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="算法导航">
+    <div class="brand">
+      <div class="brand-mark">DL</div>
+      <div>
+        <div class="brand-name">DLMS 工作台</div>
+        <div class="brand-sub">安全算法 · Suite 0/1/2</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">报文</div>
+      <button class="nav-item active" data-view="aes" aria-current="page"><svg class="ico"><use href="#i-shield"/></svg>报文保护<span class="nav-count">GCM</span></button>
+      <button class="nav-item" data-view="gmac"><svg class="ico"><use href="#i-check"/></svg>GMAC 认证<span class="nav-count">MAC</span></button>
+      <button class="nav-item" data-view="hls"><svg class="ico"><use href="#i-key"/></svg>HLS 双向认证</button>
+      <button class="nav-item" data-view="parse"><svg class="ico"><use href="#i-code"/></svg>报文解析</button>
+
+      <div class="nav-label">算法</div>
+      <button class="nav-item" data-view="keys"><svg class="ico"><use href="#i-key"/></svg>密钥工具</button>
+      <button class="nav-item" data-view="hash"><svg class="ico"><use href="#i-finger"/></svg>哈希与校验</button>
+      <button class="nav-item" data-view="sign"><svg class="ico"><use href="#i-pen"/></svg>数字签名</button>
+      <button class="nav-item" data-view="cert"><svg class="ico"><use href="#i-badge"/></svg>证书</button>
+
+      <div class="nav-label">参考</div>
+      <button class="nav-item" data-view="registry"><svg class="ico"><use href="#i-grid"/></svg>算法总览</button>
+      <button class="nav-item" data-view="vectors"><svg class="ico"><use href="#i-flask"/></svg>测试向量</button>
+    </nav>
+    <div class="side-foot">
+      <div class="offline"><span class="pulse"></span>本地离线 · 无网络请求</div>
+      <a class="side-link" href="DESIGN.md" target="_blank">设计方案 DESIGN.md</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="打开导航"><svg class="ico"><use href="#i-menu"/></svg></button>
+      <div class="crumb"><span>安全算法</span><span class="sep">/</span><strong id="crumbTitle">报文保护</strong></div>
+      <div class="top-actions">
+        <span class="badge">Green Book Ed.11</span>
+        <span class="badge badge-ok">本地离线</span>
+        <button class="icon-btn" data-help aria-label="帮助"><svg class="ico"><use href="#i-help"/></svg></button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ================= 报文保护 ================= -->
+      <section class="view active" id="view-aes">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Report protection · 01</p>
+            <h1>报文保护 <span class="h1-sub">AES-GCM</span></h1>
+            <p class="lede">把一条 xDLMS APDU 封装成 DLMS 安全报文。先定 Suite 与保护方式，再填 ST / IC / 密钥；结果区会把 SC、IC、密文、tag 逐字节摊开。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">Suite 0 · 1 · 2</span></div>
+        </div>
+
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <div class="control-grid">
+              <div>
+                <span class="control-label">模式</span>
+                <div class="seg" id="aes-mode">
+                  <button class="active" data-mode="enc">加密</button>
+                  <button data-mode="dec">解密</button>
+                </div>
+              </div>
+              <div>
+                <span class="control-label">保护方式</span>
+                <div class="seg" id="aes-protect">
+                  <button class="active" data-protect="ae">认证+加密</button>
+                  <button data-protect="auth">仅认证</button>
+                  <button data-protect="enc">仅加密</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-grid envelope-row">
+              <div>
+                <span class="control-label">安全套件</span>
+                <select class="select" id="aes-suite">
+                  <option value="0">Suite 0 · AES-128-GCM</option>
+                  <option value="1">Suite 1 · AES-128 + P-256</option>
+                  <option value="2">Suite 2 · AES-256 + P-384</option>
+                </select>
+                <div class="suite-note" id="aes-suite-note">EK/AK 16 B · tag 12 B · 无 ECC</div>
+              </div>
+              <div>
+                <span class="control-label">封装家族</span>
+                <select class="select" id="aes-family">
+                  <option value="service-glo">glo-ciphering · C8–CF</option>
+                  <option value="service-ded">ded-ciphering · D0–D7</option>
+                  <option value="general-glo">general-glo-ciphering · DB</option>
+                  <option value="general-ded">general-ded-ciphering · DC</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="aes-st">System Title（发送方）<span class="req" id="aes-st-req">8 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="aes-st"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn" data-random="aes-st" data-len="8">随机</button>
+                  <button class="mini-btn danger" data-clear="aes-st">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="aes-st" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>ASCII 8 字符 / HEX 16 位</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="aes-ic">Invocation Counter <span class="req">4 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="aes-ic"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="dec">DEC</button></div>
+                  <button class="mini-btn" data-step="aes-ic">+1</button>
+                  <button class="mini-btn danger" data-clear="aes-ic">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="aes-ic" data-fmt="hex" data-hex="01234567" value="01 23 45 67" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text">✓ 4 字节</span><span>大端；也可输入十进制</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="aes-ek">EK · 加密密钥 <span class="req" id="aes-ek-req">16 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="aes-ek"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn" data-random="aes-ek" data-len="16">生成</button>
+                  <button class="mini-btn" data-mask="aes-ek" aria-label="显示/隐藏 EK"><svg class="ico" style="width:11px;height:11px"><use href="#i-eye"/></svg></button>
+                  <button class="mini-btn danger" data-clear="aes-ek">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="aes-ek" data-fmt="hex" data-hex="000102030405060708090A0B0C0D0E0F" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text" id="aes-ek-foot">✓ 16 字节 / 128 bit</span><span id="aes-ek-hint">AES 分组密钥</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="aes-ak">AK · 认证密钥 <span class="req" id="aes-ak-req">16 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="aes-ak"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn" data-random="aes-ak" data-len="16">生成</button>
+                  <button class="mini-btn" data-mask="aes-ak" aria-label="显示/隐藏 AK"><svg class="ico" style="width:11px;height:11px"><use href="#i-eye"/></svg></button>
+                  <button class="mini-btn danger" data-clear="aes-ak">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="aes-ak" data-fmt="hex" data-hex="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text" id="aes-ak-foot">✓ 16 字节</span><span id="aes-ak-hint">进 AAD：SC ‖ AK</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="aes-input">输入报文 <span class="req" id="aes-input-req">13 B</span><span class="apdu-chip" id="aes-input-chip">C0 GET-REQUEST</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="aes-input"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn danger" data-clear="aes-input">清空</button>
+                </div>
+              </div>
+              <textarea class="mono-input" id="aes-input" data-fmt="hex" data-hex="C0010000080000010000FF0200" spellcheck="false">C0 01 00 00 08 00 00 01 00 00 FF 02 00</textarea>
+              <div class="field-foot"><span class="ok-text" id="aes-input-foot">✓ 13 字节</span><span id="aes-input-hint">加密：明文 APDU；解密：完整安全报文</span></div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="aes-run"><svg class="ico"><use href="#i-shield"/></svg>计算</button>
+              <button class="btn ghost" id="aes-load">载入 Table 48</button>
+              <button class="btn ghost" id="aes-reset">重置</button>
+              <span class="action-note">Ctrl / ⌘ + Enter</span>
+            </div>
+          </div>
+
+          <div class="right-stack">
+            <div class="card result-card is-empty" id="aes-result">
+              <div class="empty-state"><div class="big"><svg class="ico"><use href="#i-shield"/></svg></div><strong>等待参数</strong><div style="font-size:9.5px;margin-top:3px">填入参数，或载入 Table 48 向量。</div></div>
+            </div>
+            <div class="card card-pad" id="aes-trace">
+              <h3>计算轨迹 <span class="badge">加密后显示</span></h3>
+              <div class="hint">K → IV → AAD → P → T，逐步展示中间值。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= GMAC ================= -->
+      <section class="view" id="view-gmac">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Authentication only · 02</p>
+            <h1>GMAC 认证 <span class="h1-sub">no encryption</span></h1>
+            <p class="lede">GMAC 是 GCM 在明文为空时的特例：只对 AAD 生成 tag。报文内容仍然可读，但被完整性保护；HLS-5 也复用这条路径。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">tag 12 B</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <div class="control-grid">
+              <div>
+                <span class="control-label">子模式</span>
+                <div class="seg" id="gmac-mode"><button class="active" data-gmac="payload">报文 GMAC</button><button data-gmac="hls5">HLS-5</button></div>
+              </div>
+              <div>
+                <span class="control-label">安全套件</span>
+                <select class="select" id="gmac-suite"><option value="0">Suite 0 · AES-128-GCM</option><option value="1">Suite 1 · AES-128</option><option value="2">Suite 2 · AES-256</option></select>
+              </div>
+            </div>
+            <div class="field"><div class="field-head"><label for="gmac-ek">EK · GMAC 密钥 <span class="req" id="gmac-ek-req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="gmac-ek"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div><button class="mini-btn" data-random="gmac-ek" data-len="16">生成</button></div></div><input class="mono-input" id="gmac-ek" data-fmt="hex" data-hex="000102030405060708090A0B0C0D0E0F" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false"><div class="field-foot"><span class="ok-text" id="gmac-ek-foot">✓ 16 字节</span><span>AES 分组密钥</span></div></div>
+            <div class="field"><div class="field-head"><label for="gmac-ak">AK · 认证密钥 <span class="req" id="gmac-ak-req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="gmac-ak"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div><button class="mini-btn" data-random="gmac-ak" data-len="16">生成</button></div></div><input class="mono-input" id="gmac-ak" data-fmt="hex" data-hex="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false"><div class="field-foot"><span class="ok-text" id="gmac-ak-foot">✓ 16 字节</span><span>进 AAD，不参与 AES</span></div></div>
+            <div class="field"><div class="field-head"><label for="gmac-st">System Title（计算方） <span class="req">8 B</span></label><div class="field-tools"><div class="fmt-group" data-target="gmac-st"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div><button class="mini-btn" data-random="gmac-st" data-len="8">随机</button></div></div><input class="mono-input" id="gmac-st" data-fmt="hex" data-hex="4D4D4D0000000001" value="4D 4D 4D 00 00 00 00 01" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>IV = ST ‖ IC</span></div></div>
+            <div class="field"><div class="field-head"><label for="gmac-ic">Invocation Counter <span class="req">4 B</span></label><div class="field-tools"><div class="fmt-group" data-target="gmac-ic"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="dec">DEC</button></div><button class="mini-btn" data-step="gmac-ic">+1</button></div></div><input class="mono-input" id="gmac-ic" data-fmt="hex" data-hex="00000001" value="00 00 00 01" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 4 字节</span><span id="gmac-ic-dec">十进制 1</span></div></div>
+            <div class="field"><div class="field-head"><label for="gmac-content"><span id="gmac-content-label">内容 / APDU</span> <span class="req" id="gmac-content-req">8 B</span></label><div class="field-tools"><div class="fmt-group" data-target="gmac-content"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div><button class="mini-btn danger" data-clear="gmac-content">清空</button></div></div><textarea class="mono-input" id="gmac-content" data-fmt="hex" data-hex="503677524A323146" spellcheck="false">50 36 77 52 4A 32 31 46</textarea><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>HLS-5 时为质询值；报文 GMAC 时为被认证内容</span></div></div>
+            <div class="actions"><button class="btn primary" id="gmac-run">计算 GMAC</button><button class="btn ghost" id="gmac-load">载入 Table 51</button><span class="action-note">Ctrl / ⌘ + Enter</span></div>
+          </div>
+          <div class="right-stack">
+            <div class="card result-card is-empty" id="gmac-result">
+              <div class="empty-state"><div class="big"><svg class="ico"><use href="#i-check"/></svg></div><strong>等待参数</strong><div style="font-size:9.5px;margin-top:3px">GMAC 只认证、不加密。</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= HLS ================= -->
+      <section class="view" id="view-hls">
+        <div class="page-head">
+          <div>
+            <p class="kicker">High Level Security · 03</p>
+            <h1>HLS 双向认证 <span class="h1-sub">challenge-response</span></h1>
+            <p class="lede">mechanism 3/4/5/6/7 的双向质询-应答。切换方向时，system title 与质询值的顺序会自动翻转；公式预览会显示实际拼接顺序。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">mechanism 3–7</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <div class="control-grid two">
+              <div>
+                <span class="control-label">机制</span>
+                <select class="select" id="hls-mech">
+                  <option value="3">3 · MD5</option>
+                  <option value="4">4 · SHA-1</option>
+                  <option value="5" selected>5 · GMAC</option>
+                  <option value="6">6 · SHA-256</option>
+                  <option value="7">7 · ECDSA</option>
+                </select>
+              </div>
+              <div>
+                <span class="control-label">方向</span>
+                <div class="seg" id="hls-dir"><button class="active" data-dir="client">客户端 f(StoC)</button><button data-dir="server">服务端 f(CtoS)</button></div>
+              </div>
+            </div>
+
+            <div class="control-grid" data-hls-for="5"><div><span class="control-label">安全套件</span><select class="select" id="hls-suite"><option value="0">Suite 0 · AES-128</option><option value="1">Suite 1 · AES-128</option><option value="2">Suite 2 · AES-256</option></select><div class="suite-note" id="hls-suite-hint">GMAC 密钥 16 B</div></div><div><span class="control-label">说明</span><div class="hint" style="padding-top:9px">HLS-5 的 SC 低 4 位取此套件；Suite 2 用 32 B EK/AK。</div></div></div>
+            <div class="field" data-hls-for="3 4 5 6 7"><div class="field-head"><label for="hls-own-ch"><span id="hls-own-ch-label">己方质询值</span> <span class="req" id="hls-own-ch-req">8 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-own-ch"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div><button class="mini-btn" data-random="hls-own-ch" data-len="8">随机</button></div></div><input class="mono-input" id="hls-own-ch" data-fmt="hex" data-hex="503677524A323146" value="50 36 77 52 4A 32 31 46" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span id="hls-own-ch-hint">HLS 允许 8–64 B</span></div></div>
+            <div class="field" data-hls-for="6 7"><div class="field-head"><label for="hls-peer-ch">对方质询值 <span class="req">8 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-peer-ch"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div><button class="mini-btn" data-random="hls-peer-ch" data-len="8">随机</button></div></div><input class="mono-input" id="hls-peer-ch" data-fmt="hex" data-hex="4B35366956616759" value="4B 35 36 69 56 61 67 59" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>用于 HLS-6/7</span></div></div>
+            <div class="field" data-hls-for="3 4 6"><div class="field-head"><label for="hls-secret">Secret <span class="req" id="hls-secret-req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-secret"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div><button class="mini-btn" data-mask="hls-secret" aria-label="显示/隐藏 secret"><svg class="ico" style="width:11px;height:11px"><use href="#i-eye"/></svg></button></div></div><input class="mono-input" id="hls-secret" data-fmt="hex" data-hex="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 16 字节</span><span>HLS-3/4/6 的共享秘密</span></div></div>
+            <div class="field" data-hls-for="5"><div class="field-head"><label for="hls-ek">EK · GMAC 密钥 <span class="req" id="hls-ek-req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-ek"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div><button class="mini-btn" data-random="hls-ek" data-len="16">生成</button></div></div><input class="mono-input" id="hls-ek" data-fmt="hex" data-hex="000102030405060708090A0B0C0D0E0F" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false"><div class="field-foot"><span class="ok-text" id="hls-ek-foot">✓ 16 字节</span><span>HLS-5 的 AES 密钥是 EK</span></div></div>
+            <div class="field" data-hls-for="5"><div class="field-head"><label for="hls-ak">AK · 认证密钥 <span class="req" id="hls-ak-req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-ak"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div></div></div><input class="mono-input" id="hls-ak" data-fmt="hex" data-hex="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false"><div class="field-foot"><span class="ok-text" id="hls-ak-foot">✓ 16 字节</span><span>进 AAD，不参与 AES</span></div></div>
+            <div class="field" data-hls-for="5 6 7"><div class="field-head"><label for="hls-st"><span id="hls-st-label">己方 System Title</span> <span class="req">8 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-st"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div></div></div><input class="mono-input" id="hls-st" data-fmt="hex" data-hex="4D4D4D0000000001" value="4D 4D 4D 00 00 00 00 01" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>HLS-5 的 IV 用计算方自己的 ST</span></div></div>
+            <div class="field" data-hls-for="6 7"><div class="field-head"><label for="hls-peer-st">对方 System Title <span class="req">8 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-peer-st"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div></div></div><input class="mono-input" id="hls-peer-st" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>用于 HLS-6/7</span></div></div>
+            <div class="field" data-hls-for="5"><div class="field-head"><label for="hls-ic">Invocation Counter <span class="req">4 B</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-ic"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="dec">DEC</button></div><button class="mini-btn" data-step="hls-ic">+1</button></div></div><input class="mono-input" id="hls-ic" data-fmt="hex" data-hex="00000001" value="00 00 00 01" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 4 字节</span><span>HLS-5 输出 SC‖IC‖T</span></div></div>
+            <div class="control-grid" data-hls-for="7"><div><span class="control-label">曲线</span><select class="select" id="hls-curve"><option value="P-256">P-256</option><option value="P-384">P-384</option></select></div><div><span class="control-label">哈希</span><div class="hint" style="padding-top:9px">P-256 → SHA-256 · P-384 → SHA-384</div></div></div>
+            <div class="field" data-hls-for="7"><div class="field-head"><label for="hls-priv">签名私钥 <span class="req">P-256 / P-384</span></label><div class="field-tools"><div class="fmt-group" data-target="hls-priv"><button class="fmt active" data-fmt="raw">原始 d</button><button class="fmt" data-fmt="pem">PEM</button><button class="fmt" data-fmt="jwk">JWK</button></div></div></div><textarea class="mono-input" id="hls-priv" data-fmt="raw" data-hex="E9A045346B2057F1820318AB125493E9AB36CE590011C0FF30090858A118DD2E" spellcheck="false">E9A045346B2057F1820318AB125493E9AB36CE590011C0FF30090858A118DD2E</textarea><div class="field-foot"><span class="ok-text">✓ 32 B</span><span>原始私钥 d / PKCS#8 PEM / JWK</span></div></div>
+            <div class="actions"><button class="btn primary" id="hls-run">计算 f(·)</button><button class="btn ghost" id="hls-load51">载入 Table 51</button><button class="btn ghost" id="hls-load52">载入 Table 52</button><span class="action-note">Ctrl / ⌘ + Enter</span></div>
+          </div>
+          <div class="right-stack">
+            <div class="card result-card is-empty" id="hls-result">
+              <div class="empty-state"><div class="big"><svg class="ico"><use href="#i-key"/></svg></div><strong>等待参数</strong><div style="font-size:9.5px;margin-top:3px">选择机制并填入质询值。</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 密钥工具 ================= -->
+      <section class="view" id="view-keys">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Keys · 04</p>
+            <h1>密钥工具</h1>
+            <p class="lede">AES Key Wrap、ECDH + KDF、KDF 单算与随机密钥生成。原始私钥 d 会在本地推导公钥 Q。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">RFC 3394 · SP 800-56A</span></div>
+        </div>
+        <div class="filters" id="keys-tabs">
+          <button class="filter active" data-keys-tab="kw">AES Key Wrap</button>
+          <button class="filter" data-keys-tab="ecdh">ECDH + KDF</button>
+          <button class="filter" data-keys-tab="kdf">KDF</button>
+          <button class="filter" data-keys-tab="random">随机密钥</button>
+        </div>
+
+        <div class="keys-pane" data-keys-pane="kw">
+          <div class="tool-grid">
+            <div class="card card-pad">
+              <h3>AES Key Wrap / Unwrap</h3>
+              <div class="control-grid"><div><span class="control-label">模式</span><div class="seg" id="kw-mode"><button class="active" data-kw="wrap">包装</button><button data-kw="unwrap">解包</button></div></div><div><span class="control-label">KEK 长度</span><div class="hint" style="padding-top:9px">16 B 或 32 B</div></div></div>
+              <div class="field"><div class="field-head"><label for="kw-kek">KEK <span class="req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="kw-kek"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button></div><button class="mini-btn" data-random="kw-kek" data-len="16">生成</button></div></div><input class="mono-input" id="kw-kek" data-fmt="hex" data-hex="11111111111111111111111111111111" value="11 11 11 11 11 11 11 11 11 11 11 11 11 11 11 11" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 16 字节</span><span>默认 IV A6A6…</span></div></div>
+              <div class="field"><div class="field-head"><label for="kw-key"><span id="kw-key-label">待包装密钥</span> <span class="req">16 B</span></label><div class="field-tools"><div class="fmt-group" data-target="kw-key"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div><button class="mini-btn" data-random="kw-key" data-len="16">生成</button></div></div><textarea class="mono-input" id="kw-key" data-fmt="hex" data-hex="000102030405060708090A0B0C0D0E0F" spellcheck="false">00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F</textarea><div class="field-foot"><span class="ok-text">✓ 16 字节</span><span>包装后长度 +8 B</span></div></div>
+              <div class="actions"><button class="btn primary" id="kw-run">执行</button><button class="btn ghost" id="kw-load">载入向量</button></div>
+            </div>
+            <div class="right-stack"><div class="card result-card is-empty" id="kw-result"><div class="empty-state"><div class="big"><svg class="ico"><use href="#i-key"/></svg></div><strong>等待参数</strong></div></div></div>
+          </div>
+        </div>
+
+        <div class="keys-pane" data-keys-pane="ecdh" hidden>
+          <div class="tool-grid">
+            <div class="card card-pad">
+              <h3>ECDH + Concatenation KDF</h3>
+              <div class="control-grid three">
+                <div><span class="control-label">曲线</span><select class="select" id="ecdh-curve"><option value="P-256">P-256（Suite 1）</option><option value="P-384">P-384（Suite 2）</option></select></div>
+                <div><span class="control-label">AlgID 用途</span><select class="select" id="ecdh-purpose"><option value="GUEK">GUEK / GAK</option><option value="KEK">KEK</option></select></div>
+                <div><span class="control-label">keydatalen</span><select class="select" id="ecdh-keydatalen"><option value="128">128 bit</option><option value="256">256 bit</option></select></div>
+              </div>
+              <div class="field"><div class="field-head"><label for="ecdh-priv">己方私钥（PKCS#8 / JWK / 原始 d）</label></div><textarea class="mono-input" id="ecdh-priv" data-fmt="raw" spellcheck="false">E9A045346B2057F1820318AB125493E9AB36CE590011C0FF30090858A118DD2E</textarea><div class="field-foot"><span class="hint">原始 d：32 B（P-256）/ 48 B（P-384）</span></div></div>
+              <div class="field"><div class="field-head"><label for="ecdh-pub">对方公钥（X‖Y / 04‖X‖Y / SPKI PEM）</label></div><textarea class="mono-input" id="ecdh-pub" data-fmt="raw" spellcheck="false">917DBFECA43307375247989F07CC23F53D4B963AF8026C749DB33852011056DFDBE8327BD69CC149F018A8E446DDA6C55BCD78E596A56D403236233F93CC89B3</textarea><div class="field-foot"><span class="hint">DLMS key_data 是原始 X‖Y（64/96 B）</span></div></div>
+              <div class="control-grid two"><div><span class="control-label">PartyU（发送方 ST）</span><input class="mono-input" id="ecdh-party-u" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false"></div><div><span class="control-label">PartyV（接收方 ST）</span><input class="mono-input" id="ecdh-party-v" data-fmt="hex" data-hex="4D4D4D0000000001" value="4D 4D 4D 00 00 00 00 01" spellcheck="false"></div></div>
+              <div class="actions"><button class="btn primary" id="ecdh-run">计算 Z 与派生密钥</button></div>
+            </div>
+            <div class="right-stack"><div class="card result-card is-empty" id="ecdh-result"><div class="empty-state"><div class="big"><svg class="ico"><use href="#i-key"/></svg></div><strong>等待参数</strong></div></div></div>
+          </div>
+        </div>
+
+        <div class="keys-pane" data-keys-pane="kdf" hidden>
+          <div class="tool-grid">
+            <div class="card card-pad">
+              <h3>Concatenation KDF</h3>
+              <div class="control-grid three">
+                <div><span class="control-label">Hash</span><select class="select" id="kdf-hash"><option value="SHA-256">SHA-256</option><option value="SHA-384">SHA-384</option></select></div>
+                <div><span class="control-label">keydatalen</span><select class="select" id="kdf-keydatalen"><option value="128">128 bit</option><option value="256">256 bit</option></select></div>
+                <div><span class="control-label">AlgID</span><input class="mono-input" id="kdf-algid" data-fmt="hex" data-hex="60857405080300" value="60 85 74 05 08 03 00" spellcheck="false"></div>
+              </div>
+              <div class="field"><div class="field-head"><label for="kdf-z">共享秘密 Z <span class="req">32 B</span></label></div><textarea class="mono-input" id="kdf-z" data-fmt="hex" data-hex="C1CF8FE7891AEF3617D7190795E61FE6C24EFC3CCA2E08469BAD1A225CE6EA08" spellcheck="false">C1 CF 8F E7 89 1A EF 36 17 D7 19 07 95 E6 1F E6 C2 4E FC 3C CA 2E 08 46 9B AD 1A 22 5C E6 EA 08</textarea></div>
+              <div class="control-grid two"><div><span class="control-label">PartyU</span><input class="mono-input" id="kdf-party-u" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false"></div><div><span class="control-label">PartyV</span><input class="mono-input" id="kdf-party-v" data-fmt="hex" data-hex="4D4D4D0000000001" value="4D 4D 4D 00 00 00 00 01" spellcheck="false"></div></div>
+              <div class="field"><div class="field-head"><label for="kdf-nonce">NonceU（可选，C(0e,2s)）</label><div class="field-tools"><button class="mini-btn danger" data-clear="kdf-nonce">清空</button></div></div><input class="mono-input" id="kdf-nonce" data-fmt="hex" data-hex="" value="" placeholder="留空表示 OtherInfo 不带 NonceU" spellcheck="false"><div class="field-foot"><span class="hint">编码为 1 字节长度 + transaction-id</span></div></div>
+              <div class="actions"><button class="btn primary" id="kdf-run">计算</button><button class="btn ghost" id="kdf-load">载入 Annex C.1</button></div>
+            </div>
+            <div class="right-stack"><div class="card result-card is-empty" id="kdf-result"><div class="empty-state"><div class="big"><svg class="ico"><use href="#i-key"/></svg></div><strong>等待参数</strong></div></div></div>
+          </div>
+        </div>
+
+        <div class="keys-pane" data-keys-pane="random" hidden>
+          <div class="tool-grid">
+            <div class="card card-pad">
+              <h3>随机密钥</h3>
+              <div class="control-grid"><div><span class="control-label">AES 密钥长度</span><select class="select" id="rnd-aes-bits"><option value="16">16 B（128 bit）</option><option value="32">32 B（256 bit）</option></select></div><div style="align-self:end"><button class="btn primary" id="rnd-aes-run" style="width:100%">生成 AES 密钥</button></div></div>
+              <div class="field"><div class="field-head"><label for="rnd-aes-result">结果</label></div><textarea class="mono-input" id="rnd-aes-result" readonly spellcheck="false"></textarea><div class="field-foot"><span class="hint">使用 crypto.getRandomValues</span></div></div>
+              <div class="cert-section"><h4>EC 密钥对</h4><div class="control-grid"><div><span class="control-label">曲线</span><select class="select" id="rnd-ec-curve"><option value="P-256">P-256</option><option value="P-384">P-384</option></select></div><div style="align-self:end"><button class="btn primary" id="rnd-ec-run" style="width:100%">生成 EC 密钥对</button></div></div><div class="field"><textarea class="mono-input" id="rnd-ec-result" readonly spellcheck="false" style="min-height:150px"></textarea><div class="field-foot"><span class="hint">输出原始 d、X‖Y、PKCS#8 PEM</span></div></div></div>
+            </div>
+            <div class="right-stack"><div class="card card-pad"><h3>说明</h3><div class="note">随机密钥只在本页内存中生成，不会上传或持久化。测试向量使用规范公开示例，不要用于生产。</div></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 哈希与校验 ================= -->
+      <section class="view" id="view-hash">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Hash & checksum · 05</p>
+            <h1>哈希与校验</h1>
+            <p class="lede">SHA-256/384/512、SHA-1、MD5、HMAC，以及 CRC-16/X.25（HDLC FCS）、CRC-32。支持文本、HEX 与文件。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">WebCrypto · 纯 JS</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <h3>哈希 / HMAC</h3>
+            <div class="control-grid"><div><span class="control-label">算法</span><select class="select" id="hash-algo"><option>SHA-256</option><option>SHA-384</option><option>SHA-512</option><option>SHA-1</option><option>MD5</option></select></div><div><span class="control-label">输入格式</span><div class="seg" id="hash-input-format"><button class="active" data-hfmt="text">文本</button><button data-hfmt="hex">HEX</button></div></div></div>
+            <div class="field"><div class="field-head"><label for="hash-input">输入</label><div class="field-tools"><button class="mini-btn danger" data-clear="hash-input">清空</button></div></div><textarea class="mono-input" id="hash-input" spellcheck="false">abc</textarea><div class="field-foot"><span class="hint">文本按 UTF-8；HEX 会先归一化</span></div></div>
+            <div class="field"><div class="field-head"><label><input type="checkbox" id="hash-hmac"> 启用 HMAC</label></div><input class="mono-input" id="hash-key" data-fmt="hex" data-hex="000102030405060708090A0B0C0D0E0F" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false" placeholder="HMAC 密钥（HEX）"></div>
+            <div class="field"><div class="field-head"><label for="hash-file">或选择文件</label></div><input type="file" id="hash-file" style="font-size:11px;color:var(--muted)"></div>
+            <div class="actions"><button class="btn primary" id="hash-run">计算哈希</button></div>
+            <div class="cert-section"><h4>结果</h4><textarea class="mono-input" id="hash-result" readonly spellcheck="false" style="min-height:70px"></textarea><div class="field-foot"><span class="hint" id="hash-result-meta"></span></div></div>
+          </div>
+          <div class="card card-pad">
+            <h3>CRC / FCS</h3>
+            <div class="control-grid"><div><span class="control-label">算法</span><select class="select" id="crc-algo"><option value="X25">CRC-16/X.25（HDLC FCS）</option><option value="CCITT-FALSE">CRC-16/CCITT-FALSE</option><option value="ARC">CRC-16/ARC</option><option value="MODBUS">CRC-16/MODBUS</option><option value="CRC32">CRC-32/ISO-HDLC</option></select></div><div><span class="control-label">输入格式</span><div class="seg" id="crc-input-format"><button class="active" data-cfmt="hex">HEX</button><button data-cfmt="text">文本</button></div></div></div>
+            <div class="field"><div class="field-head"><label for="crc-input">输入</label><div class="field-tools"><button class="mini-btn danger" data-clear="crc-input">清空</button></div></div><textarea class="mono-input" id="crc-input" spellcheck="false">31 32 33 34 35 36 37 38 39</textarea><div class="field-foot"><span class="hint">"123456789" 的标准 check 值</span></div></div>
+            <div class="actions"><button class="btn primary" id="crc-run">计算</button><button class="btn ghost" id="crc-append">追加 FCS 到输入</button></div>
+            <div class="cert-section"><h4>结果</h4><textarea class="mono-input" id="crc-result" readonly spellcheck="false" style="min-height:70px"></textarea><div class="field-foot"><span class="hint" id="crc-result-meta"></span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 数字签名 ================= -->
+      <section class="view" id="view-sign">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Digital signature · 06</p>
+            <h1>数字签名 <span class="h1-sub">ECDSA</span></h1>
+            <p class="lede">ECDSA 签名/验签；DLMS plain R‖S 与证书 DER 互转；支持 PKCS#8、JWK 与原始私钥 d。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">P-256 · P-384</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <div class="control-grid three">
+              <div><span class="control-label">模式</span><div class="seg" id="sign-mode"><button class="active" data-sign="sign">签名</button><button data-sign="verify">验签</button></div></div>
+              <div><span class="control-label">曲线</span><select class="select" id="sign-curve"><option value="P-256">P-256</option><option value="P-384">P-384</option></select></div>
+              <div><span class="control-label">哈希</span><select class="select" id="sign-hash"><option value="SHA-256">SHA-256</option><option value="SHA-384">SHA-384</option></select></div>
+            </div>
+            <div class="field" data-sign-for="sign"><div class="field-head"><label for="sign-priv">私钥（PKCS#8 / JWK / 原始 d）</label><div class="field-tools"><button class="mini-btn" id="sign-gen">生成密钥对</button></div></div><textarea class="mono-input" id="sign-priv" spellcheck="false">E9A045346B2057F1820318AB125493E9AB36CE590011C0FF30090858A118DD2E</textarea><div class="field-foot"><span class="hint">原始 d：32/48 B；PEM 以 BEGIN 开头；JWK 以 { 开头</span></div></div>
+            <div class="field" data-sign-for="verify"><div class="field-head"><label for="sign-pub">公钥 / 证书（X‖Y、04‖X‖Y、SPKI PEM、证书 PEM）</label></div><textarea class="mono-input" id="sign-pub" spellcheck="false">917DBFECA43307375247989F07CC23F53D4B963AF8026C749DB33852011056DFDBE8327BD69CC149F018A8E446DDA6C55BCD78E596A56D403236233F93CC89B3</textarea><div class="field-foot"><span class="hint">粘贴证书 PEM 会自动取公钥</span></div></div>
+            <div class="field"><div class="field-head"><label for="sign-msg">消息</label></div><textarea class="mono-input" id="sign-msg" spellcheck="false">DLMS interoperability</textarea><div class="field-foot"><span class="hint">HLS-7 请用 HLS 页拼消息；这里签原始消息</span></div></div>
+            <div class="field"><div class="field-head"><label for="sign-sig">签名（验签时粘贴；raw 或 DER）</label></div><textarea class="mono-input" id="sign-sig" spellcheck="false" placeholder="64/96 B plain R‖S，或 30… DER"></textarea><div class="field-foot"><span class="hint">raw↔DER 会自动识别</span></div></div>
+            <div class="actions"><button class="btn primary" id="sign-run">执行</button><button class="btn ghost" id="sign-raw2der">raw → DER</button><button class="btn ghost" id="sign-der2raw">DER → raw</button></div>
+          </div>
+          <div class="right-stack"><div class="card result-card is-empty" id="sign-result"><div class="empty-state"><div class="big"><svg class="ico"><use href="#i-pen"/></svg></div><strong>等待参数</strong></div></div></div>
+        </div>
+      </section>
+
+      <!-- ================= 证书 ================= -->
+      <section class="view" id="view-cert">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Certificates · 07</p>
+            <h1>X.509 证书</h1>
+            <p class="lede">解析 DLMS 证书、验证签名与用途、提取 DLMS key_data 需要的原始公钥；明确区分密码学校验与信任锚判断。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">P-256 / P-384 · RSA 验签</span></div>
+        </div>
+        <div class="cert-grid">
+          <div class="card cert-left">
+            <div class="dropzone">
+              <div class="big"><svg class="ico"><use href="#i-badge"/></svg></div>
+              <strong>粘贴或拖入证书</strong>
+              <p>PEM 可多张；DER 请用 HEX 粘贴。</p>
+              <button class="btn small ghost" id="cert-load-sample">载入示例证书链</button>
+              <button class="btn small ghost" id="cert-file-btn">选择文件</button>
+              <input type="file" id="cert-file" accept=".pem,.cer,.crt,.der" hidden>
+            </div>
+            <div class="field" style="margin-top:12px"><div class="field-head"><label for="cert-input">证书 / 链</label><div class="field-tools"><button class="mini-btn danger" data-clear="cert-input">清空</button></div></div><textarea class="mono-input" id="cert-input" spellcheck="false" style="min-height:170px" placeholder="-----BEGIN CERTIFICATE-----..."></textarea></div>
+            <div class="actions" style="margin-top:8px"><button class="btn primary" id="cert-parse">解析</button></div>
+            <ul class="chain" id="cert-chain"></ul>
+          </div>
+          <div class="card cert-right" id="cert-detail">
+            <div class="empty-state" style="padding:30px 10px"><div class="big"><svg class="ico"><use href="#i-badge"/></svg></div><strong>等待证书</strong><div style="font-size:9.5px;margin-top:3px">解析后显示主题、签发者、有效期、扩展与公钥。</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 报文解析 ================= -->
+      <section class="view" id="view-parse">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Frame parser · 08</p>
+            <h1>报文解析</h1>
+            <p class="lede">粘贴 HDLC 帧、wrapper 帧或原始 APDU，自动识别安全层、校验 FCS、按字段拆分 SC / IC / 密文 / tag；可选填密钥直接解密。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">HDLC · wrapper · APDU</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <div class="field"><div class="field-head"><label for="parse-input">输入</label><div class="field-tools"><button class="mini-btn danger" data-clear="parse-input">清空</button></div></div><textarea class="mono-input" id="parse-input" spellcheck="false" style="min-height:150px">C81E3001234567411312FF935A47566827C467BC7D825C3BE4A77C3FCC056B6B</textarea><div class="field-foot"><span class="hint">支持 7E…7E、00 01…、原始 APDU；也接受空格/冒号分隔</span></div></div>
+            <div class="control-grid two"><div><span class="control-label">发送方 System Title（可选）</span><input class="mono-input" id="parse-st" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false"></div><div><span class="control-label">解密（可选）</span><div class="seg" id="parse-decrypt"><button data-decrypt="no" class="active">只解析</button><button data-decrypt="yes">解析并解密</button></div></div></div>
+            <div class="control-grid two"><div><span class="control-label">EK</span><input class="mono-input" id="parse-ek" data-fmt="hex" data-hex="000102030405060708090A0B0C0D0E0F" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false"></div><div><span class="control-label">AK</span><input class="mono-input" id="parse-ak" data-fmt="hex" data-hex="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false"></div></div>
+            <div class="actions"><button class="btn primary" id="parse-run">解析</button><button class="btn ghost" id="parse-send">送到报文保护</button></div>
+          </div>
+          <div class="right-stack"><div class="card result-card is-empty" id="parse-result"><div class="empty-state"><div class="big"><svg class="ico"><use href="#i-code"/></svg></div><strong>等待报文</strong></div></div></div>
+        </div>
+      </section>
+
+      <!-- ================= 算法总览 ================= -->
+      <section class="view" id="view-registry">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Algorithm registry · 09</p>
+            <h1>算法总览</h1>
+            <p class="lede">按能力域组织的算法注册表。点“可用”卡片进入对应工作台；“规划中”只保留入口与规范说明。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">9 个可用</span><span class="pill pill-parse">1 个仅解析</span><span class="pill pill-plan">3 个规划</span></div>
+        </div>
+        <div class="filters" id="registry-filters">
+          <button class="filter active" data-cat="all">全部</button><button class="filter" data-cat="protect">报文保护</button><button class="filter" data-cat="key">密钥</button><button class="filter" data-cat="auth">认证</button><button class="filter" data-cat="pki">签名 / 证书</button><button class="filter" data-cat="check">校验</button><button class="filter" data-cat="plan">规划中</button>
+        </div>
+        <div class="algo-grid" id="algoGrid">
+          <button class="algo-card" data-view="aes" data-cat="protect"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-shield"/></svg></span><span class="pill pill-ok">可用</span></div><h3>AES-GCM</h3><p>认证加密 / 仅加密 / 仅认证；service-specific / general glo/ded-ciphering。</p><div class="algo-io"><div><b>输入</b> Suite · ST · IC · EK · AK · P</div><div><b>输出</b> C · Tag(12) · APDU</div></div><div class="algo-spec">Green Book §9.2.3.3.7</div></button>
+          <button class="algo-card" data-view="gmac" data-cat="protect auth"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-check"/></svg></span><span class="pill pill-ok">可用</span></div><h3>GMAC</h3><p>只认证不加密；报文 GMAC 与 HLS-5 两种入口。</p><div class="algo-io"><div><b>输入</b> EK · AK · ST · IC · content</div><div><b>输出</b> Tag(12) / SC‖IC‖T(17)</div></div><div class="algo-spec">Green Book §9.2.3.3.7.1</div></button>
+          <button class="algo-card" data-view="keys" data-cat="key"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-key"/></svg></span><span class="pill pill-ok">可用</span></div><h3>AES Key Wrap</h3><p>RFC 3394；KEK 包装 GUEK / GBEK / GAK。</p><div class="algo-io"><div><b>输入</b> KEK · key</div><div><b>输出</b> wrapped(n+8)</div></div><div class="algo-spec">Green Book §9.2.3.3.8</div></button>
+          <button class="algo-card" data-view="keys" data-cat="key"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-key"/></svg></span><span class="pill pill-ok">可用</span></div><h3>ECDH + KDF</h3><p>P-256 / P-384；NIST Concatenation KDF。</p><div class="algo-io"><div><b>输入</b> d · Qpeer · AlgID · PartyU/V</div><div><b>输出</b> Z · 派生密钥</div></div><div class="algo-spec">§9.2.3.4.6.5 · Annex C.1</div></button>
+          <button class="algo-card" data-view="hls" data-cat="auth"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-check"/></svg></span><span class="pill pill-ok">可用</span></div><h3>HLS 双向认证</h3><p>mechanism 3/4/5/6/7，客户端/服务端双向质询-应答。</p><div class="algo-io"><div><b>输入</b> 质询值 · secret / EK/AK / 私钥</div><div><b>输出</b> f(StoC) / f(CtoS)</div></div><div class="algo-spec">§9.2.7.4 Tables 50–52</div></button>
+          <button class="algo-card" data-view="sign" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-pen"/></svg></span><span class="pill pill-ok">可用</span></div><h3>ECDSA</h3><p>签名/验签；DLMS plain R‖S 与证书 DER 互转。</p><div class="algo-io"><div><b>输入</b> d / Q · message · hash</div><div><b>输出</b> 64 / 96 B 签名</div></div><div class="algo-spec">§9.2.3.4.5</div></button>
+          <button class="algo-card" data-view="cert" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-ok">可用</span></div><h3>X.509 证书</h3><p>解析、验签、链式校验、公钥提取。</p><div class="algo-io"><div><b>输入</b> PEM / DER · issuer</div><div><b>输出</b> 字段 · 校验结果 · 公钥</div></div><div class="algo-spec">RFC 5280 · §9.2.6</div></button>
+          <button class="algo-card" data-view="hash" data-cat="check"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-finger"/></svg></span><span class="pill pill-ok">可用</span></div><h3>SHA / MD5</h3><p>SHA-256/384/512、SHA-1、MD5、HMAC。</p><div class="algo-io"><div><b>输入</b> message / file</div><div><b>输出</b> digest</div></div><div class="algo-spec">§9.2.3.2 · HLS-3/4/6</div></button>
+          <button class="algo-card" data-view="hash" data-cat="check"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-finger"/></svg></span><span class="pill pill-ok">可用</span></div><h3>CRC / FCS</h3><p>CRC-16/X.25（HDLC FCS）、CCITT、ARC、CRC-32。</p><div class="algo-io"><div><b>输入</b> bytes · 参数</div><div><b>输出</b> 数值 · 线上字节</div></div><div class="algo-spec">IEC 62056-46</div></button>
+          <button class="algo-card" data-view="parse" data-cat="protect"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-code"/></svg></span><span class="pill pill-parse">仅解析</span></div><h3>general-ciphering · DD</h3><p>v1 解析 tx / 双 ST / key-info / ciphered-content；构建放 v2。</p><div class="algo-io"><div><b>输入</b> DD 报文</div><div><b>输出</b> 字段树 · 内层 APDU</div></div><div class="algo-spec">§9.5 · Table 49</div></button>
+          <button class="algo-card planned" data-cat="plan" data-plan="V.44 只省带宽、不是密码学；v1 只保留说明入口。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-grid"/></svg></span><span class="pill pill-plan">规划中</span></div><h3>V.44 压缩</h3><p>Suite 1/2 的 SC bit7；与加解密链路耦合较深。</p><div class="algo-io"><div><b>输入</b> 压缩数据</div><div><b>输出</b> 原始数据</div></div><div class="algo-spec">§9.2.3.6</div></button>
+          <button class="algo-card planned" data-cat="plan" data-plan="Suite 3–15 在 Ed.11 中保留，可能是后量子方向；不猜算法。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-grid"/></svg></span><span class="pill pill-plan">保留</span></div><h3>Security Suite 3–15</h3><p>规范保留值，尚无 Ed.11 算法定义。</p><div class="algo-io"><div><b>输入</b> —</div><div><b>输出</b> —</div></div><div class="algo-spec">Table 27</div></button>
+          <button class="algo-card planned" data-cat="plan" data-plan="证书签发/CSR 需要额外 ASN.1 编码器，放 v2。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-plan">规划中</span></div><h3>证书签发 / CSR</h3><p>自签名测试证书、CSR 生成；v1 不做。</p><div class="algo-io"><div><b>输入</b> 主体 · 公钥 · 私钥</div><div><b>输出</b> DER 证书 / CSR</div></div><div class="algo-spec">RFC 5280</div></button>
+        </div>
+      </section>
+
+      <!-- ================= 测试向量 ================= -->
+      <section class="view" id="view-vectors">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Self-test · 10</p>
+            <h1>测试向量</h1>
+            <p class="lede">在浏览器里跑规范向量：Table 48 / 51 / 52、Annex C.1 KDF、AES-KW、CRC、SHA/MD5 与证书链。全部通过才说明实现与规范一致。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok" id="vectors-summary">未运行</span><span class="badge">Green Book Ed.11</span></div>
+        </div>
+        <div class="card card-pad">
+          <div class="actions" style="margin-top:0;padding-top:0;border-top:0"><button class="btn primary" id="vectors-run-all">全部运行</button><span class="hint">结果只在本地计算</span></div>
+          <div style="margin-top:12px"><table class="vector-table"><thead><tr><th>向量</th><th>期望 / 说明</th><th>结果</th></tr></thead><tbody id="vectors-list"></tbody></table></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="mobile-bar"><button class="btn primary" id="mobile-run">执行当前页</button><span class="status-mini" id="mobile-status">就绪</span></div>
+
+<script src="assets/js/core/bytes.js"></script>
+<script src="assets/js/core/hash.js"></script>
+<script src="assets/js/core/gcm.js"></script>
+<script src="assets/js/core/aes-kw.js"></script>
+<script src="assets/js/core/kdf.js"></script>
+<script src="assets/js/core/crc.js"></script>
+<script src="assets/js/core/ec.js"></script>
+<script src="assets/js/core/x509.js"></script>
+<script src="assets/js/core/dlms.js"></script>
+<script src="assets/js/vectors.js"></script>
+<script src="assets/js/ui/components.js"></script>
+<script src="assets/js/ui/app.js"></script>
+</body>
+</html>

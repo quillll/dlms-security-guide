@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DLMS 安全算法工作台 · UI 设计预览</title>
+<style>
+  :root{
+    --bg:#F4F2EC; --surface:#FFFEFB; --surface-2:#FBF9F3;
+    --ink:#17181C; --muted:#5F6470; --faint:#8A8374;
+    --line:#DDD7C9; --line-2:#EAE4D7; --line-strong:#C9C1AE;
+    --brand:#145C63; --brand-dark:#0F4A50; --brand-2:#1A5C8A;
+    --brand-soft:#E6F0EF; --blue-soft:#E7F0F6;
+    --accent:#B5762A; --accent-soft:#F7EDDC;
+    --ok:#1F7A4D; --ok-soft:#E7F2EC;
+    --danger:#B23A3A; --danger-soft:#F8E8E6;
+    --purple:#6B4C9A; --purple-soft:#EFEAF7;
+    --ct:#A34A3A; --ct-soft:#F7E9E5;
+    --tag:#2F7D5B; --tag-soft:#E6F2EC;
+    --mono:"JetBrains Mono","Cascadia Code","SFMono-Regular",Consolas,monospace;
+    --sans:"Inter","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    --r:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input,textarea,select{font:inherit;color:inherit}
+  button{cursor:pointer}
+  a{color:var(--brand);text-decoration:none}
+  .sprite{display:none}
+  .ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .app{display:flex;min-height:100vh}
+
+  /* ---------- sidebar ---------- */
+  .sidebar{width:248px;flex:none;background:#14211F;color:#C7D3CE;height:100vh;position:sticky;top:0;display:flex;flex-direction:column;z-index:40}
+  .brand{display:flex;gap:11px;align-items:center;padding:22px 18px 18px}
+  .brand-mark{width:38px;height:38px;border-radius:9px;background:#1D3330;border:1px solid #31504A;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:12px;color:#E8C98F;letter-spacing:.04em}
+  .brand-name{font-size:13.5px;font-weight:700;color:#F2F7F4;letter-spacing:.01em}
+  .brand-sub{font-size:10px;color:#8FA49C;margin-top:2px;letter-spacing:.03em}
+  .nav{padding:6px 10px 18px;overflow-y:auto;flex:1}
+  .nav-label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#72877F;padding:14px 9px 6px}
+  .nav-item{position:relative;width:100%;display:flex;align-items:center;gap:9px;padding:8px 9px;border:0;background:transparent;border-radius:7px;color:#B9C7C1;font-size:12.5px;text-align:left;transition:background .15s,color .15s}
+  .nav-item:hover{background:rgba(255,255,255,.055);color:#F1F6F3}
+  .nav-item.active{background:rgba(255,255,255,.09);color:#FFFFFF;font-weight:600}
+  .nav-item.active::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:#D9A75E}
+  .nav-item .ico{width:17px;height:17px;opacity:.8}
+  .nav-item.active .ico{opacity:1;color:#E8C98F}
+  .nav-count{margin-left:auto;font-family:var(--mono);font-size:9px;color:#8FA49C;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px}
+  .side-foot{padding:14px 18px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:#8FA49C}
+  .offline{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .pulse{width:6px;height:6px;border-radius:50%;background:#5FBF8A;box-shadow:0 0 0 3px rgba(95,191,138,.12)}
+  .side-link{color:#C7D3CE;font-size:10.5px;border-bottom:1px dotted #5E746C;padding-bottom:1px}
+
+  /* ---------- topbar ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{height:62px;display:flex;align-items:center;gap:12px;padding:0 24px;background:rgba(255,254,251,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+  .menu-btn{display:none}
+  .crumb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);min-width:0}
+  .crumb strong{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .crumb .sep{color:#B9B1A0}
+  .top-actions{margin-left:auto;display:flex;align-items:center;gap:7px}
+  .badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.02em;padding:4px 7px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:var(--surface-2);white-space:nowrap}
+  .badge-ok{color:var(--ok);border-color:#C6DDD0;background:var(--ok-soft)}
+  .icon-btn{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--muted);padding:0}
+  .icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+  .icon-btn .ico{width:15px;height:15px}
+
+  .preview-note{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;padding:8px 24px;background:var(--accent-soft);border-bottom:1px solid #E8D4B4;color:#6F4B16;font-size:11.5px}
+  .preview-note span{min-width:0}
+  .preview-note strong{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;background:#7A4F18;color:#FFF7E8;padding:2px 5px;border-radius:3px;white-space:nowrap;margin-top:1px}
+
+  .content{padding:24px;max-width:1500px;width:100%;margin:0 auto;min-width:0;overflow-x:clip}
+  .view{display:none}
+  .view.active{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:.4;transform:translateY(2px)}to{opacity:1;transform:none}}
+
+  /* ---------- page head ---------- */
+  .page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}
+  .kicker{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin:0 0 4px}
+  h1{font-size:25px;line-height:1.2;letter-spacing:-.025em;margin:0 0 6px;font-weight:700}
+  .h1-sub{font-family:var(--mono);font-size:12px;color:var(--faint);font-weight:400;letter-spacing:.02em;margin-left:6px}
+  .lede{max-width:760px;margin:0;color:var(--muted);font-size:12.5px;line-height:1.65}
+  .head-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end;padding-top:4px}
+  .pill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:3px 7px;border-radius:4px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);white-space:nowrap}
+  .pill-ok{color:var(--ok);border-color:#C6DDD0;background:var(--ok-soft)}
+  .pill-plan{color:var(--accent);border-color:#E8D4B4;background:var(--accent-soft)}
+  .pill-parse{color:var(--brand-2);border-color:#C9DCE8;background:var(--blue-soft)}
+  .mono{font-family:var(--mono)}
+
+  /* ---------- layout ---------- */
+  .workbench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:18px;align-items:start}
+  .right-stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+  .below-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:18px;margin-top:18px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 1px 0 rgba(23,24,28,.03);min-width:0}
+  .workbench>*{min-width:0}
+  .form-card{padding:18px}
+  .card h2,.card h3{margin:0}
+  .card h3{font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+
+  /* ---------- form ---------- */
+  .control-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
+  .control-grid.two{grid-template-columns:1.25fr .75fr}
+  .control-grid>div{min-width:0}
+  .control-label{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:.01em}
+  .seg{display:flex;gap:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:2px;min-width:0}
+  .seg button{flex:1;min-width:0;border:0;background:transparent;border-radius:6px;padding:7px 6px;font-size:11px;color:var(--muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg button.active{background:#FFFFFF;color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(23,24,28,.08)}
+  .select{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:#FFFDF7;padding:8px 10px;font-size:12px;color:var(--ink);appearance:none;background-image:linear-gradient(45deg,transparent 50%,#8A8374 50%),linear-gradient(135deg,#8A8374 50%,transparent 50%);background-position:calc(100% - 14px) 51%,calc(100% - 9px) 51%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  .suite-note{font-size:10px;color:var(--muted);margin-top:4px}
+
+  .field{margin-bottom:13px;min-width:0}
+  .field-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+  .field-head label{font-size:11.5px;font-weight:600;color:var(--ink)}
+  .req{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--faint);background:var(--surface-2);border:1px solid var(--line-2);padding:1px 4px;border-radius:3px;margin-left:4px}
+  .field-tools{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .fmt-group{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#FFFDF7}
+  .fmt{font-family:var(--mono);font-size:8.5px;letter-spacing:.02em;padding:3px 5px;border:0;border-right:1px solid var(--line-2);background:transparent;color:var(--faint)}
+  .fmt:last-child{border-right:0}
+  .fmt.active{background:var(--brand);color:#fff}
+  .mini-btn{font-size:9.5px;padding:3px 5px;border:1px solid var(--line);background:transparent;border-radius:4px;color:var(--muted);white-space:nowrap}
+  .mini-btn:hover{background:var(--surface-2);color:var(--ink)}
+  .mini-btn.danger:hover{color:var(--danger);border-color:#E0BFBB}
+  .mono-input{width:100%;min-width:0;max-width:100%;border:1px solid var(--line);border-radius:8px;background:#FFFDF7;padding:9px 10px;font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+  .mono-input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(20,92,99,.1)}
+  textarea.mono-input{min-height:76px;resize:vertical;line-height:1.65}
+  .mono-input.masked{-webkit-text-security:disc;letter-spacing:.15em}
+  .field-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;font-size:9.5px;color:var(--faint)}
+  .ok-text{color:var(--ok)}
+  .warn-text{color:var(--accent)}
+  .bad-text{color:var(--danger)}
+  .apdu-chip{display:inline-flex;align-items:center;font-family:var(--mono);font-size:8.5px;padding:1px 4px;border-radius:3px;background:var(--blue-soft);color:var(--brand-2);margin-left:5px;vertical-align:1px}
+
+  .actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:16px;padding-top:13px;border-top:1px dashed var(--line)}
+  .btn{border:1px solid transparent;border-radius:7px;padding:8px 12px;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .btn .ico{width:14px;height:14px}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.primary:hover{background:var(--brand-dark)}
+  .btn.ghost{background:transparent;border-color:var(--line-strong);color:var(--ink)}
+  .btn.ghost:hover{background:var(--surface-2)}
+  .btn.small{padding:5px 8px;font-size:10.5px;border-radius:5px}
+  .action-note{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--faint);white-space:nowrap}
+
+  /* ---------- result ---------- */
+  .result-card{overflow:hidden}
+  .result-head{padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line-2)}
+  .io-compare{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:7px;align-items:stretch;padding:10px 16px 0}
+  .io-cell{background:var(--surface-2);border:1px solid var(--line-2);border-radius:6px;padding:7px 8px;min-width:0}
+  .io-cell span{display:block;font-size:8.5px;color:var(--faint);margin-bottom:2px}
+  .io-cell code{display:block;font-family:var(--mono);font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#3C4048}
+  .io-cell small{display:block;font-size:8.5px;color:var(--faint);margin-top:2px}
+  .io-arrow{display:grid;place-items:center;color:var(--faint);font-family:var(--mono);font-size:14px;padding:0 1px}
+  .status{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border-radius:8px;border:1px solid #C6DDD0;background:var(--ok-soft);min-width:0}
+  .status.ok{color:#145C3A}
+  .status.warn{border-color:#E8D4B4;background:var(--accent-soft);color:#6F4B16}
+  .status.bad{border-color:#E0BFBB;background:var(--danger-soft);color:#7E2525}
+  .status-ico{width:20px;height:20px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+  .status.warn .status-ico{background:var(--accent)}
+  .status.bad .status-ico{background:var(--danger)}
+  .status strong{display:block;font-size:11.5px;line-height:1.35}
+  .status small{display:block;font-size:9.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .result-actions{display:flex;gap:4px;flex:none}
+  .tabs{display:flex;align-items:center;gap:2px;padding:8px 16px 0;border-bottom:1px solid var(--line-2)}
+  .tab{border:0;background:transparent;font-family:var(--mono);font-size:9.5px;letter-spacing:.03em;color:var(--faint);padding:6px 7px 7px;border-bottom:2px solid transparent}
+  .tab.active{color:var(--brand);border-color:var(--brand);font-weight:700}
+  .tab-meta{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--faint);padding-bottom:6px}
+  .pane{display:none;padding:12px 16px}
+  .pane.active{display:block}
+  .byte-view{background:var(--surface-2);border:1px solid var(--line-2);border-radius:7px;padding:8px;overflow-x:auto}
+  .byte-row{display:flex;align-items:center;gap:3px;margin-bottom:3px}
+  .byte-row:last-child{margin-bottom:0}
+  .offset{width:30px;flex:none;font-family:var(--mono);font-size:8px;color:#A39B8B}
+  .byte{width:24px;height:22px;flex:none;display:grid;place-items:center;font-family:var(--mono);font-size:10.5px;border-radius:3px;border:1px solid transparent}
+  .b-tag{background:#F3E6CF;border-color:#E6D0A8;color:#7A4D12}
+  .b-len{background:#EEE9DE;border-color:#E2DACB;color:#5F5A4E}
+  .b-sc{background:var(--purple-soft);border-color:#DDD2EE;color:#553B7D}
+  .b-ic{background:var(--blue-soft);border-color:#CFE0EA;color:#14507A}
+  .b-ct{background:var(--ct-soft);border-color:#E8CDC5;color:#8A3B2C}
+  .b-auth{background:var(--tag-soft);border-color:#C9E2D4;color:#1F6247}
+  .b-plain{background:#F0F0ED;border-color:#E2E2DC;color:#3A3F4A}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+  .lg{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;color:var(--muted)}
+  .sw{width:9px;height:9px;border-radius:2px;border:1px solid rgba(0,0,0,.06)}
+  .sw.tag{background:#F3E6CF}.sw.len{background:#EEE9DE}.sw.sc{background:var(--purple-soft)}.sw.ic{background:var(--blue-soft)}.sw.ct{background:var(--ct-soft)}.sw.auth{background:var(--tag-soft)}
+  .pane textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);font-family:var(--mono);font-size:10.5px;padding:8px;resize:vertical;line-height:1.6}
+  .pane pre{margin:0;background:var(--surface-2);border:1px solid var(--line-2);border-radius:7px;padding:9px;font-family:var(--mono);font-size:10.5px;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+  .field-table-wrap{margin:0 16px 12px;border:1px solid var(--line-2);border-radius:7px;overflow-x:auto}
+  .field-table{width:100%;border-collapse:collapse;font-size:10.5px;min-width:430px}
+  .field-table th{text-align:left;padding:6px 7px;background:var(--surface-2);color:var(--faint);font-family:var(--mono);font-size:8px;letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--line-2);font-weight:500}
+  .field-table td{padding:6px 7px;border-bottom:1px solid #F0EBDF;vertical-align:top}
+  .field-table tr:last-child td{border-bottom:0}
+  .field-table td.mono{font-family:var(--mono);font-size:9.5px;color:#3C4048}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:1px}
+  .dot.tag{background:#C08A3E}.dot.len{background:#9A9384}.dot.sc{background:var(--purple)}.dot.ic{background:var(--brand-2)}.dot.ct{background:var(--ct)}.dot.auth{background:var(--tag)}
+  .result-foot{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:10px 16px 13px;border-top:1px solid var(--line-2);background:#FFFEFA}
+  .result-foot .hint{font-size:9.5px;color:var(--faint);margin-left:auto}
+  .empty-state{display:none;padding:34px 18px;text-align:center;color:var(--muted)}
+  .empty-state .big{width:38px;height:38px;border:1px dashed var(--line-strong);border-radius:50%;display:grid;place-items:center;margin:0 auto 9px;color:var(--faint)}
+  .result-card.is-empty .result-body{display:none}
+  .result-card.is-empty .io-compare{display:none}
+  .result-card.is-empty .empty-state{display:block}
+  .result-card.pulse{animation:pulse .55s ease}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(20,92,99,.22)}100%{box-shadow:0 0 0 8px rgba(20,92,99,0)}}
+
+  /* ---------- below cards ---------- */
+  .trace-card,.vector-card{padding:16px}
+  .trace{list-style:none;margin:0;padding:0}
+  .trace li{display:flex;gap:9px;padding:7px 0;position:relative}
+  .trace li:not(:last-child)::after{content:"";position:absolute;left:10px;top:29px;bottom:-2px;width:1px;background:var(--line-2)}
+  .trace-num{width:21px;height:21px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-family:var(--mono);font-size:8.5px;color:var(--muted);z-index:1}
+  .trace b{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ink);letter-spacing:.02em}
+  .trace code{display:block;font-family:var(--mono);font-size:9.5px;color:#3C4048;word-break:break-all;line-height:1.5;margin-top:1px}
+  .trace small{display:block;font-size:8.5px;color:var(--faint);margin-top:2px}
+  .vector-note{font-size:9.5px;color:var(--faint);margin:0 0 9px}
+  .vector-compare{display:grid;gap:6px}
+  .vector-compare>div{background:var(--surface-2);border:1px solid var(--line-2);border-radius:6px;padding:7px 8px}
+  .vector-compare span{display:block;font-size:8.5px;color:var(--faint);margin-bottom:2px}
+  .vector-compare code{font-family:var(--mono);font-size:9.5px;word-break:break-all;line-height:1.5}
+  .vector-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+
+  /* ---------- registry ---------- */
+  .filters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+  .filter{font-size:10px;padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted)}
+  .filter.active{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+  .algo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .algo-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:13px;transition:border-color .15s,transform .15s,box-shadow .15s}
+  .algo-card:hover{border-color:#AFC8C4;transform:translateY(-1px);box-shadow:0 3px 10px rgba(23,24,28,.05)}
+  .algo-card.planned{opacity:.62;border-style:dashed;background:#FCFAF4}
+  .algo-card.planned:hover{transform:none;box-shadow:none;border-color:var(--line-strong)}
+  .algo-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .algo-ico{width:27px;height:27px;border-radius:6px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center}
+  .algo-ico .ico{width:15px;height:15px}
+  .algo-card h3{font-size:12.5px;margin:9px 0 3px;line-height:1.3}
+  .algo-card p{font-size:10.5px;color:var(--muted);margin:0 0 8px;line-height:1.5;min-height:31px}
+  .algo-io{display:grid;gap:2px;border-top:1px dashed var(--line-2);padding-top:7px;font-size:9px;color:var(--faint);line-height:1.45}
+  .algo-io b{color:var(--muted);font-weight:600}
+  .algo-spec{font-family:var(--mono);font-size:8px;color:#9C9484;margin-top:7px}
+
+  /* ---------- certificate ---------- */
+  .cert-grid{display:grid;grid-template-columns:310px minmax(0,1fr);gap:18px;align-items:start}
+  .cert-left,.cert-right{padding:16px}
+  .dropzone{border:1.5px dashed var(--line-strong);border-radius:9px;background:var(--surface-2);padding:18px 12px;text-align:center}
+  .dropzone .big{width:38px;height:38px;border:1px solid var(--line);border-radius:9px;display:grid;place-items:center;margin:0 auto 8px;color:var(--brand);background:var(--surface)}
+  .dropzone strong{display:block;font-size:11.5px;margin-bottom:3px}
+  .dropzone p{font-size:9.5px;color:var(--faint);margin:0 0 9px}
+  .chain{list-style:none;margin:11px 0 0;padding:0}
+  .chain-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:7px;padding:7px 8px;margin-bottom:5px;font-size:10px;color:var(--muted)}
+  .chain-item.active{border-color:#B9D2CE;background:var(--brand-soft);color:var(--ink)}
+  .chain-item .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:none;margin:0}
+  .chain-item small{display:block;font-size:8.5px;color:var(--faint)}
+  .kv{display:grid;grid-template-columns:104px minmax(0,1fr);gap:7px 10px;font-size:10.5px;margin:0}
+  .kv dt{color:var(--faint)}
+  .kv dd{margin:0;font-family:var(--mono);font-size:9.5px;color:#3C4048;word-break:break-all;line-height:1.5}
+  .badge-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+  .mini-badge{font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:3px;border:1px solid #C9E2D4;background:var(--tag-soft);color:#1F6247}
+  .cert-section{border-top:1px solid var(--line-2);margin-top:12px;padding-top:11px}
+  .cert-section h4{font-size:10.5px;margin:0 0 6px;color:var(--ink)}
+  .verify-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .note{background:var(--surface-2);border-left:3px solid var(--accent);padding:8px 10px;font-size:9.5px;color:var(--muted);line-height:1.55;border-radius:0 5px 5px 0}
+  .key-actions{display:flex;gap:5px;flex-wrap:wrap}
+
+  /* ---------- placeholder ---------- */
+  .placeholder-card{padding:30px 20px;text-align:center}
+  .placeholder-card .big{width:44px;height:44px;border:1px dashed var(--line-strong);border-radius:10px;display:grid;place-items:center;margin:0 auto 10px;color:var(--brand)}
+  .placeholder-card h2{font-size:16px;margin:0 0 5px}
+  .placeholder-card p{max-width:520px;margin:0 auto 16px;font-size:11.5px;color:var(--muted);line-height:1.7}
+  .mini-wire{display:grid;grid-template-columns:1fr 1.1fr;gap:8px;max-width:520px;margin:0 auto 16px}
+  .mini-wire div{height:46px;border:1px dashed var(--line-strong);border-radius:6px;background:var(--surface-2);display:grid;place-items:center;font-family:var(--mono);font-size:8.5px;color:var(--faint)}
+  .mini-wire div.wide{grid-column:1/-1;height:34px}
+
+  /* ---------- toast / scrim / mobile bar ---------- */
+  .toast{position:fixed;right:20px;bottom:20px;z-index:120;background:#1B2422;color:#F4F8F5;padding:9px 13px;border-radius:7px;font-size:11px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s,transform .18s;max-width:min(360px,calc(100vw - 40px))}
+  .toast.show{opacity:1;transform:none}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(15,20,18,.42);z-index:35}
+  .mobile-bar{display:none}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:1180px){
+    .workbench{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .algo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (max-width:1020px){
+    .sidebar{position:fixed;left:0;top:0;transform:translateX(-102%);transition:transform .2s ease;box-shadow:12px 0 30px rgba(0,0,0,.15)}
+    body.nav-open .sidebar{transform:none}
+    body.nav-open .scrim{display:block}
+    .menu-btn{display:grid}
+    .topbar{padding:0 16px}
+    .preview-note{padding-left:16px;padding-right:16px}
+    .content{padding:18px 16px}
+    .workbench{grid-template-columns:1fr}
+    .below-grid{grid-template-columns:1fr}
+    .cert-grid{grid-template-columns:1fr}
+    .head-meta{display:none}
+  }
+  @media (max-width:640px){
+    body{font-size:13px;overflow-x:hidden}
+    .topbar{height:56px}
+    .top-actions .badge{display:none}
+    .crumb{overflow:hidden}
+    .top-actions{flex:none}
+    .content{padding:14px 12px 78px}
+    h1{font-size:21px}
+    .h1-sub{display:block;margin:3px 0 0}
+    .control-grid,.control-grid.two{grid-template-columns:1fr}
+    .algo-grid{grid-template-columns:1fr}
+    .field-tools{width:100%;justify-content:flex-start}
+    .action-note{display:none}
+    .actions{display:none}
+    .mobile-bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgba(255,254,251,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:9px 12px calc(9px + env(safe-area-inset-bottom));gap:8px;align-items:center}
+    .mobile-bar .btn{flex:1;justify-content:center}
+    .mobile-bar .status-mini{font-family:var(--mono);font-size:8.5px;color:var(--ok);white-space:nowrap}
+    .byte{width:22px;height:21px;font-size:9.5px}
+    .field-table{min-width:400px}
+    .tabs{padding-left:12px;padding-right:12px}
+    .pane{padding:10px 12px}
+    .field-table-wrap{margin-left:12px;margin-right:12px}
+    .result-head{padding:11px 12px}
+    .result-foot{padding:9px 12px 11px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.4-2.9 7.4-7 9-4.1-1.6-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M17 4h3v3"/></symbol>
+  <symbol id="i-finger" viewBox="0 0 24 24"><path d="M12 11a3 3 0 0 1 3 3v4"/><path d="M8 14a4 4 0 0 1 8 0v3"/><path d="M5 14a7 7 0 0 1 14 0"/><path d="M12 7v1"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1L19 8l-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></symbol>
+  <symbol id="i-badge" viewBox="0 0 24 24"><path d="M12 3l2.4 1.9 3 .3.3 3L20 11l-2.3 2.8.3 3-3 .3L12 19l-2.4-1.9-3-.3-.3-3L4 11l2.3-2.8-.3-3 3-.3L12 3z"/><path d="M9 11l2 2 4-4"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M9 5H5v14h4M15 5h4v14h-4"/><path d="M13 8l-2 8"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L5 19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2L14 9V3"/><path d="M8 15h8"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4M5 19h14"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="算法导航">
+    <div class="brand">
+      <div class="brand-mark">DL</div>
+      <div>
+        <div class="brand-name">DLMS 工作台</div>
+        <div class="brand-sub">安全算法 · Suite 0/1/2</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">报文</div>
+      <button class="nav-item active" data-view="aes" aria-current="page"><svg class="ico"><use href="#i-shield"/></svg>报文保护<span class="nav-count">GCM</span></button>
+      <button class="nav-item" data-view="gmac"><svg class="ico"><use href="#i-check"/></svg>GMAC 认证<span class="nav-count">MAC</span></button>
+      <button class="nav-item" data-view="hls"><svg class="ico"><use href="#i-key"/></svg>HLS 双向认证</button>
+      <button class="nav-item" data-view="parse"><svg class="ico"><use href="#i-code"/></svg>报文解析</button>
+
+      <div class="nav-label">算法</div>
+      <button class="nav-item" data-view="keys"><svg class="ico"><use href="#i-key"/></svg>密钥工具</button>
+      <button class="nav-item" data-view="hash"><svg class="ico"><use href="#i-finger"/></svg>哈希与校验</button>
+      <button class="nav-item" data-view="sign"><svg class="ico"><use href="#i-pen"/></svg>数字签名</button>
+      <button class="nav-item" data-view="cert"><svg class="ico"><use href="#i-badge"/></svg>证书</button>
+
+      <div class="nav-label">参考</div>
+      <button class="nav-item" data-view="registry"><svg class="ico"><use href="#i-grid"/></svg>算法总览</button>
+      <button class="nav-item" data-view="vectors"><svg class="ico"><use href="#i-flask"/></svg>测试向量</button>
+    </nav>
+    <div class="side-foot">
+      <div class="offline"><span class="pulse"></span>本地离线 · 无网络请求</div>
+      <a class="side-link" href="index.html">实际工具 index.html</a><br>
+      <a class="side-link" href="DESIGN.md" target="_blank">查看设计方案 DESIGN.md</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-btn" id="menuBtn" aria-label="打开导航"><svg class="ico"><use href="#i-menu"/></svg></button>
+      <div class="crumb"><span>安全算法</span><span class="sep">/</span><strong id="crumbTitle">报文保护</strong></div>
+      <div class="top-actions">
+        <span class="badge">Green Book Ed.11</span>
+        <span class="badge badge-ok">本地离线</span>
+        <button class="icon-btn" data-toast="帮助页将在实现阶段加入：算法口径、规范出处与常见错误。" aria-label="帮助"><svg class="ico"><use href="#i-help"/></svg></button>
+      </div>
+    </header>
+
+    <div class="preview-note">
+      <strong>设计预览</strong>
+      <span>静态版式，不含算法逻辑；示例数据取自 Green Book Table 48 / 51。确认后再接入 WebCrypto 与自研 GCM 校验。</span>
+    </div>
+
+    <main class="content">
+
+      <!-- ============ AES ============ -->
+      <section class="view active" id="view-aes">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Report protection · 01</p>
+            <h1>报文保护 <span class="h1-sub">AES-GCM</span></h1>
+            <p class="lede">把一条 xDLMS APDU 封装成 DLMS 安全报文。先定 Suite 与保护模式，再填 ST / IC / 密钥；结果区会把 SC、IC、密文、tag 逐字节摊开。</p>
+          </div>
+          <div class="head-meta">
+            <span class="pill pill-ok">可用</span>
+            <span class="badge">suite 0 · 1 · 2</span>
+          </div>
+        </div>
+
+        <div class="workbench">
+          <div class="card form-card">
+            <div class="control-grid">
+              <div>
+                <span class="control-label">模式</span>
+                <div class="seg" data-seg="mode">
+                  <button class="active" data-mode="enc">加密</button>
+                  <button data-mode="dec">解密</button>
+                </div>
+              </div>
+              <div>
+                <span class="control-label">保护方式</span>
+                <div class="seg" data-seg="protect">
+                  <button class="active" data-protect="ae">认证+加密</button>
+                  <button data-protect="auth">仅认证</button>
+                  <button data-protect="enc">仅加密</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-grid" style="grid-template-columns:1fr">
+              <div>
+                <span class="control-label">安全套件</span>
+                <select class="select" id="suiteSelect">
+                  <option value="0">Suite 0 · AES-128-GCM</option>
+                  <option value="1">Suite 1 · AES-128 + P-256 + SHA-256</option>
+                  <option value="2">Suite 2 · AES-256 + P-384 + SHA-384</option>
+                </select>
+                <div class="suite-note" id="suiteNote">EK/AK 16 B · tag 12 B · 无 ECC</div>
+              </div>
+              <div>
+                <span class="control-label">外层封装</span>
+                <select class="select">
+                  <option>glo-ciphering · C8–CF</option>
+                  <option>ded-ciphering · D0–D7</option>
+                  <option>general-glo-ciphering · DB</option>
+                  <option>general-ded-ciphering · DC</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="st">System Title <span class="req">8 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="st"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn" data-random="st" data-len="8">随机</button>
+                  <button class="mini-btn danger" data-clear="st">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="st" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>ASCII 8 字符 / HEX 16 位</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="ic">Invocation Counter <span class="req">4 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="ic"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="dec">DEC</button></div>
+                  <button class="mini-btn" data-step="ic">+1</button>
+                  <button class="mini-btn danger" data-clear="ic">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="ic" data-hex="01234567" value="01 23 45 67" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text">✓ 4 字节</span><span>十进制 19088743 · 大端</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="ek">EK · 加密密钥 <span class="req" id="ekReq">16 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="ek"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn" data-random="ek" data-len="16">生成</button>
+                  <button class="mini-btn" data-mask="ek" aria-label="显示/隐藏 EK"><svg class="ico" style="width:11px;height:11px"><use href="#i-eye"/></svg></button>
+                  <button class="mini-btn danger" data-clear="ek">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="ek" data-hex="000102030405060708090A0B0C0D0E0F" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text" id="ekFoot">✓ 16 字节 / 128 bit</span><span id="ekHint">Suite 0/1</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="ak">AK · 认证密钥 <span class="req" id="akReq">16 B</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="ak"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn" data-random="ak" data-len="16">生成</button>
+                  <button class="mini-btn" data-mask="ak" aria-label="显示/隐藏 AK"><svg class="ico" style="width:11px;height:11px"><use href="#i-eye"/></svg></button>
+                  <button class="mini-btn danger" data-clear="ak">清空</button>
+                </div>
+              </div>
+              <input class="mono-input" id="ak" data-hex="D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false" autocomplete="off">
+              <div class="field-foot"><span class="ok-text" id="akFoot">✓ 16 字节</span><span id="akHint">进 AAD：SC ‖ AK</span></div>
+            </div>
+
+            <div class="field">
+              <div class="field-head">
+                <label for="pt">明文 APDU <span class="req">13 B</span><span class="apdu-chip">C0 GET-REQUEST</span></label>
+                <div class="field-tools">
+                  <div class="fmt-group" data-target="pt"><button class="fmt active" data-fmt="hex">HEX</button><button class="fmt" data-fmt="ascii">ASCII</button><button class="fmt" data-fmt="b64">B64</button></div>
+                  <button class="mini-btn danger" data-clear="pt">清空</button>
+                </div>
+              </div>
+              <textarea class="mono-input" id="pt" data-hex="C0010000080000010000FF0200" spellcheck="false">C0 01 00 00 08 00 00 01 00 00 FF 02 00</textarea>
+              <div class="field-foot"><span class="ok-text">✓ 13 字节</span><span>GET class 8 · OBIS 0-0:1.0.0.255 · attr 2</span></div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="computeBtn"><svg class="ico"><use href="#i-shield"/></svg>计算并生成报文</button>
+              <button class="btn ghost" id="loadVector">载入 Table 48 向量</button>
+              <button class="btn ghost" id="resetBtn">重置</button>
+              <span class="action-note">Ctrl / ⌘ + Enter</span>
+            </div>
+          </div>
+
+          <div class="right-stack">
+          <div class="card result-card" id="resultCard">
+            <div class="result-head">
+              <div class="status ok" id="statusBox">
+                <span class="status-ico">✓</span>
+                <div><strong id="statusTitle">已生成 12 B 认证标签</strong><small id="statusSub">Suite 0 · 认证+加密 · glo-ciphering · C8</small></div>
+              </div>
+              <div class="result-actions">
+                <button class="icon-btn" data-copy="C81E3001234567411312FF935A47566827C467BC7D825C3BE4A77C3FCC056B6B" aria-label="复制完整报文"><svg class="ico"><use href="#i-copy"/></svg></button>
+                <button class="icon-btn" data-toast="下载功能将在实现阶段加入：.txt / .bin 两种格式。" aria-label="下载"><svg class="ico"><use href="#i-download"/></svg></button>
+              </div>
+            </div>
+
+            <div class="io-compare">
+              <div class="io-cell"><span id="ioInLabel">输入 · 明文 APDU</span><code id="ioInCode">C0 01 00 00 08 00 00 01 00 00 FF 02 00</code><small id="ioInSize">13 B</small></div>
+              <div class="io-arrow">→</div>
+              <div class="io-cell"><span id="ioOutLabel">输出 · 密文</span><code id="ioOutCode">41 13 12 FF 93 5A 47 56 68 27 C4 67 BC</code><small id="ioOutSize">13 B</small></div>
+            </div>
+
+            <div class="result-body">
+              <div class="tabs" role="tablist" aria-label="结果格式">
+                <button class="tab active" data-pane="hex" role="tab" aria-selected="true">HEX</button>
+                <button class="tab" data-pane="b64" role="tab" aria-selected="false">BASE64</button>
+                <button class="tab" data-pane="ascii" role="tab" aria-selected="false">ASCII</button>
+                <span class="tab-meta">32 B · 2 行</span>
+              </div>
+
+              <div class="pane active" id="pane-hex" role="tabpanel">
+                <div class="byte-view" aria-label="完整安全报文字节视图">
+                  <div class="byte-row">
+                    <span class="offset">0000</span>
+                    <span class="byte b-tag">C8</span><span class="byte b-len">1E</span><span class="byte b-sc">30</span>
+                    <span class="byte b-ic">01</span><span class="byte b-ic">23</span><span class="byte b-ic">45</span><span class="byte b-ic">67</span>
+                    <span class="byte b-ct">41</span><span class="byte b-ct">13</span><span class="byte b-ct">12</span><span class="byte b-ct">FF</span>
+                    <span class="byte b-ct">93</span><span class="byte b-ct">5A</span><span class="byte b-ct">47</span><span class="byte b-ct">56</span><span class="byte b-ct">68</span>
+                  </div>
+                  <div class="byte-row">
+                    <span class="offset">0010</span>
+                    <span class="byte b-ct">27</span><span class="byte b-ct">C4</span><span class="byte b-ct">67</span><span class="byte b-ct">BC</span>
+                    <span class="byte b-auth">7D</span><span class="byte b-auth">82</span><span class="byte b-auth">5C</span><span class="byte b-auth">3B</span>
+                    <span class="byte b-auth">E4</span><span class="byte b-auth">A7</span><span class="byte b-auth">7C</span><span class="byte b-auth">3F</span>
+                    <span class="byte b-auth">CC</span><span class="byte b-auth">05</span><span class="byte b-auth">6B</span><span class="byte b-auth">6B</span>
+                  </div>
+                </div>
+                <div class="legend">
+                  <span class="lg"><i class="sw tag"></i>APDU tag</span><span class="lg"><i class="sw len"></i>Len</span><span class="lg"><i class="sw sc"></i>SC</span><span class="lg"><i class="sw ic"></i>IC</span><span class="lg"><i class="sw ct"></i>密文</span><span class="lg"><i class="sw auth"></i>认证 tag</span>
+                </div>
+              </div>
+              <div class="pane" id="pane-b64" role="tabpanel"><textarea readonly spellcheck="false">yB4wASNFZ0ETEv+TWkdWaCfEZ7x9glw75Kd8P8wFa2s=</textarea></div>
+              <div class="pane" id="pane-ascii" role="tabpanel"><pre>··0·#EgA····ZGVh'·g·}·\;··|?··kk</pre></div>
+
+              <div class="field-table-wrap">
+                <table class="field-table">
+                  <thead><tr><th>字段</th><th>偏移</th><th>长度</th><th>值</th><th>说明</th></tr></thead>
+                  <tbody>
+                    <tr><td><i class="dot tag"></i>APDU tag</td><td class="mono">0</td><td class="mono">1</td><td class="mono">C8</td><td>glo-get-request</td></tr>
+                    <tr><td><i class="dot len"></i>Len</td><td class="mono">1</td><td class="mono">1</td><td class="mono">1E</td><td>30 = 5 + 13 + 12；从 SC 起算</td></tr>
+                    <tr><td><i class="dot sc"></i>SC</td><td class="mono">2</td><td class="mono">1</td><td class="mono">30</td><td>A=1 · E=1 · suite=0</td></tr>
+                    <tr><td><i class="dot ic"></i>IC</td><td class="mono">3</td><td class="mono">4</td><td class="mono">01234567</td><td>发送方调用计数器</td></tr>
+                    <tr><td><i class="dot ct"></i>密文</td><td class="mono">7</td><td class="mono">13</td><td class="mono">4113…C467BC</td><td>与明文等长</td></tr>
+                    <tr><td><i class="dot auth"></i>认证 tag</td><td class="mono">20</td><td class="mono">12</td><td class="mono">7D82…056B6B</td><td>GCM 16 B tag 的前 12 B</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="result-foot">
+                <button class="btn small ghost" data-toast="将把这段报文带到解密模式，并自动识别 SC / IC / Len。">作为解密输入</button>
+                <button class="btn small ghost" data-toast="下载功能将在实现阶段加入。">下载 .txt</button>
+                <span class="hint">长度自洽：2 + 0x1E = 32 B ✓</span>
+              </div>
+            </div>
+
+            <div class="empty-state">
+              <div class="big"><svg class="ico"><use href="#i-shield"/></svg></div>
+              <strong>等待参数</strong>
+              <div style="font-size:9.5px;margin-top:3px">填入 ST / IC / 密钥与 APDU，或载入 Table 48 向量。</div>
+            </div>
+          </div>
+
+          <div class="card trace-card">
+            <h3>计算轨迹 <span class="badge">可逐步复制</span></h3>
+            <ol class="trace">
+              <li><span class="trace-num">1</span><div><b>K · 加密密钥</b><code>000102030405060708090A0B0C0D0E0F</code><small>16 B · Suite 0</small></div></li>
+              <li><span class="trace-num">2</span><div><b>IV = ST ‖ IC</b><code>4D4D4D0000BC614E 01234567</code><small>12 B · 用发送方 ST</small></div></li>
+              <li><span class="trace-num">3</span><div><b>AAD = SC ‖ AK</b><code>30 D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF</code><small>17 B · 认证+加密</small></div></li>
+              <li><span class="trace-num">4</span><div><b>P · 明文</b><code>C0010000080000010000FF0200</code><small>13 B · GET-REQUEST</small></div></li>
+              <li><span class="trace-num">5</span><div><b>T · 认证标签</b><code>7D825C3BE4A77C3FCC056B6B</code><small>12 B · 取 GCM tag 前 12 B</small></div></li>
+            </ol>
+          </div>
+
+          <div class="card vector-card">
+            <h3>Table 48 · 认证+加密 <span class="pill pill-ok">期望值内置</span></h3>
+            <p class="vector-note">Green Book Ed.11 §9.2.7.2.4.10 · 一条自带标准答案的自检向量</p>
+            <div class="vector-compare">
+              <div><span>期望 tag</span><code>7D82 5C3B E4A7 7C3F CC05 6B6B</code></div>
+              <div><span>当前结果</span><code class="ok-text">7D82 5C3B E4A7 7C3F CC05 6B6B ✓</code></div>
+            </div>
+            <div class="vector-actions">
+              <button class="btn small primary" id="loadVector2">载入参数</button>
+              <button class="btn small ghost" data-toast="实现阶段会显示期望/实际逐字节 diff，并标出第一个不一致的字节。">逐字节对比</button>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ GMAC ============ -->
+      <section class="view" id="view-gmac">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Authentication only · 02</p>
+            <h1>GMAC 认证 <span class="h1-sub">no encryption</span></h1>
+            <p class="lede">GMAC 是 GCM 在明文为空时的特例：只对 AAD 生成 tag。报文内容仍然可读，但被完整性保护；HLS-5 也复用这条路径。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">tag 12 B</span></div>
+        </div>
+        <div class="workbench">
+          <div class="card form-card">
+            <div class="control-grid">
+              <div><span class="control-label">子模式</span><div class="seg"><button class="active">报文 GMAC</button><button data-toast="HLS-5 表单会在这里切换：challenge + EK/AK + ST/IC。">HLS-5</button></div></div>
+              <div><span class="control-label">安全套件</span><select class="select"><option>Suite 0 · AES-128-GCM</option><option>Suite 1 · AES-128</option><option>Suite 2 · AES-256</option></select></div>
+            </div>
+            <div class="field"><div class="field-head"><label>EK · GMAC 密钥 <span class="req">16 B</span></label><div class="field-tools"><div class="fmt-group"><button class="fmt active">HEX</button><button class="fmt">B64</button></div><button class="mini-btn">生成</button></div></div><input class="mono-input" value="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 16 字节</span><span>GMAC 的 AES 分组密钥</span></div></div>
+            <div class="field"><div class="field-head"><label>AK · 认证密钥 <span class="req">16 B</span></label><div class="field-tools"><div class="fmt-group"><button class="fmt active">HEX</button><button class="fmt">B64</button></div><button class="mini-btn">生成</button></div></div><input class="mono-input" value="D0 D1 D2 D3 D4 D5 D6 D7 D8 D9 DA DB DC DD DE DF" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 16 字节</span><span>进 AAD，不参与 AES</span></div></div>
+            <div class="field"><div class="field-head"><label>System Title <span class="req">8 B</span></label><div class="field-tools"><div class="fmt-group"><button class="fmt active">HEX</button><button class="fmt">ASCII</button></div><button class="mini-btn">随机</button></div></div><input class="mono-input" value="4D 4D 4D 00 00 00 00 01" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>计算方自己的 ST</span></div></div>
+            <div class="field"><div class="field-head"><label>Invocation Counter <span class="req">4 B</span></label><div class="field-tools"><div class="fmt-group"><button class="fmt active">HEX</button><button class="fmt">DEC</button></div><button class="mini-btn">+1</button></div></div><input class="mono-input" value="00 00 00 01" spellcheck="false"><div class="field-foot"><span class="ok-text">✓ 4 字节</span><span>十进制 1</span></div></div>
+            <div class="field"><div class="field-head"><label>质询值 / 内容 (challenge) <span class="req">8 B</span></label><div class="field-tools"><div class="fmt-group"><button class="fmt active">HEX</button><button class="fmt">ASCII</button></div><button class="mini-btn danger">清空</button></div></div><textarea class="mono-input" spellcheck="false">50 36 77 52 4A 32 31 46</textarea><div class="field-foot"><span class="ok-text">✓ 8 字节</span><span>“P6wRJ21F”</span></div></div>
+            <div class="actions"><button class="btn primary" data-toast="设计预览：GMAC 算法逻辑将在确认后接入。">计算 GMAC</button><button class="btn ghost">载入 Table 51</button><span class="action-note">Ctrl / ⌘ + Enter</span></div>
+          </div>
+          <div class="card result-card">
+            <div class="result-head"><div class="status warn"><span class="status-ico">!</span><div><strong>仅认证：没有机密性</strong><small>内容仍以明文出现在报文中；tag 只证明“没被改过”。</small></div></div><div class="result-actions"><button class="icon-btn" data-copy="10000000011A52FE7DD3E72748973C1E28" aria-label="复制"><svg class="ico"><use href="#i-copy"/></svg></button></div></div>
+            <div class="result-body">
+              <div class="tabs"><button class="tab active">HEX</button><button class="tab">BASE64</button><span class="tab-meta">17 B · SC‖IC‖T</span></div>
+              <div class="pane active">
+                <div class="byte-view">
+                  <div class="byte-row"><span class="offset">0000</span><span class="byte b-sc">10</span><span class="byte b-ic">00</span><span class="byte b-ic">00</span><span class="byte b-ic">00</span><span class="byte b-ic">01</span><span class="byte b-auth">1A</span><span class="byte b-auth">52</span><span class="byte b-auth">FE</span><span class="byte b-auth">7D</span><span class="byte b-auth">D3</span><span class="byte b-auth">E7</span><span class="byte b-auth">27</span><span class="byte b-auth">48</span><span class="byte b-auth">97</span><span class="byte b-auth">3C</span><span class="byte b-auth">1E</span><span class="byte b-auth">28</span></div>
+                </div>
+                <div class="legend"><span class="lg"><i class="sw sc"></i>SC</span><span class="lg"><i class="sw ic"></i>IC</span><span class="lg"><i class="sw auth"></i>GMAC tag</span></div>
+              </div>
+              <div class="field-table-wrap"><table class="field-table"><thead><tr><th>字段</th><th>偏移</th><th>长度</th><th>值</th><th>说明</th></tr></thead><tbody><tr><td><i class="dot sc"></i>SC</td><td class="mono">0</td><td class="mono">1</td><td class="mono">10</td><td>A=1 · E=0 · suite=0</td></tr><tr><td><i class="dot ic"></i>IC</td><td class="mono">1</td><td class="mono">4</td><td class="mono">00000001</td><td>计算方 IC</td></tr><tr><td><i class="dot auth"></i>GMAC tag</td><td class="mono">5</td><td class="mono">12</td><td class="mono">1A52…3C1E28</td><td>GCM tag 前 12 B</td></tr></tbody></table></div>
+              <div class="result-foot"><span class="hint">HLS-5 输出固定 17 B：SC(1) + IC(4) + Tag(12)</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ REGISTRY ============ -->
+      <section class="view" id="view-registry">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Algorithm registry · 09</p>
+            <h1>算法总览</h1>
+            <p class="lede">按能力域组织的算法注册表。点“可用”卡片进入对应工作台；“规划中”只保留入口与规范说明，不会伪装成已实现。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">9 个可用</span><span class="pill pill-parse">1 个仅解析</span><span class="pill pill-plan">3 个规划</span></div>
+        </div>
+        <div class="filters" id="filters">
+          <button class="filter active" data-cat="all">全部</button>
+          <button class="filter" data-cat="protect">报文保护</button>
+          <button class="filter" data-cat="key">密钥</button>
+          <button class="filter" data-cat="auth">认证</button>
+          <button class="filter" data-cat="pki">签名 / 证书</button>
+          <button class="filter" data-cat="check">校验</button>
+          <button class="filter" data-cat="plan">规划中</button>
+        </div>
+        <div class="algo-grid" id="algoGrid">
+          <button class="algo-card" data-view="aes" data-cat="protect"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-shield"/></svg></span><span class="pill pill-ok">可用</span></div><h3>AES-GCM</h3><p>认证加密 / 仅加密 / 仅认证；C8、DB/DC 封装。</p><div class="algo-io"><div><b>输入</b> Suite · ST · IC · EK · AK · P</div><div><b>输出</b> C · Tag(12) · APDU</div></div><div class="algo-spec">Green Book §9.2.3.3.7</div></button>
+          <button class="algo-card" data-view="gmac" data-cat="protect auth"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-check"/></svg></span><span class="pill pill-ok">可用</span></div><h3>GMAC</h3><p>只认证不加密；报文 GMAC 与 HLS-5 两种入口。</p><div class="algo-io"><div><b>输入</b> EK · AK · ST · IC · content</div><div><b>输出</b> Tag(12) / SC‖IC‖T(17)</div></div><div class="algo-spec">Green Book §9.2.3.3.7.1</div></button>
+          <button class="algo-card" data-view="keys" data-cat="key"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-key"/></svg></span><span class="pill pill-ok">可用</span></div><h3>AES Key Wrap</h3><p>RFC 3394；KEK 包装 GUEK / GBEK / GAK。</p><div class="algo-io"><div><b>输入</b> KEK · key</div><div><b>输出</b> wrapped(n+8)</div></div><div class="algo-spec">Green Book §9.2.3.3.8</div></button>
+          <button class="algo-card" data-view="keys" data-cat="key"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-key"/></svg></span><span class="pill pill-ok">可用</span></div><h3>ECDH + KDF</h3><p>P-256 / P-384；NIST Concatenation KDF。</p><div class="algo-io"><div><b>输入</b> d · Qpeer · AlgID · PartyU/V</div><div><b>输出</b> Z · 派生密钥</div></div><div class="algo-spec">§9.2.3.4.6.5 · Annex C.1</div></button>
+          <button class="algo-card" data-view="hls" data-cat="auth"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-check"/></svg></span><span class="pill pill-ok">可用</span></div><h3>HLS 双向认证</h3><p>mechanism 3/4/5/6/7，客户端/服务端双向质询-应答。</p><div class="algo-io"><div><b>输入</b> challenge · secret / EK/AK / 私钥</div><div><b>输出</b> f(StoC) / f(CtoS)</div></div><div class="algo-spec">§9.2.7.4 Tables 50–52</div></button>
+          <button class="algo-card" data-view="sign" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-pen"/></svg></span><span class="pill pill-ok">可用</span></div><h3>ECDSA</h3><p>签名/验签；DLMS plain R‖S 与证书 DER 互转。</p><div class="algo-io"><div><b>输入</b> d / Q · message · hash</div><div><b>输出</b> 64 / 96 B 签名</div></div><div class="algo-spec">§9.2.3.4.5</div></button>
+          <button class="algo-card" data-view="cert" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-ok">可用</span></div><h3>X.509 证书</h3><p>解析、验签、链式校验、公钥提取。</p><div class="algo-io"><div><b>输入</b> PEM / DER · issuer</div><div><b>输出</b> 字段 · 校验结果 · 公钥</div></div><div class="algo-spec">RFC 5280 · §9.2.6</div></button>
+          <button class="algo-card" data-view="hash" data-cat="check"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-finger"/></svg></span><span class="pill pill-ok">可用</span></div><h3>SHA / MD5</h3><p>SHA-256/384/512、SHA-1、MD5、HMAC。</p><div class="algo-io"><div><b>输入</b> message / file</div><div><b>输出</b> digest</div></div><div class="algo-spec">§9.2.3.2 · HLS-3/4/6</div></button>
+          <button class="algo-card" data-view="hash" data-cat="check"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-finger"/></svg></span><span class="pill pill-ok">可用</span></div><h3>CRC / FCS</h3><p>CRC-16/X.25（HDLC FCS）、CCITT、ARC、CRC-32。</p><div class="algo-io"><div><b>输入</b> bytes · 参数</div><div><b>输出</b> 数值 · 线上字节</div></div><div class="algo-spec">IEC 62056-46</div></button>
+          <button class="algo-card" data-view="parse" data-cat="protect"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-code"/></svg></span><span class="pill pill-parse">仅解析</span></div><h3>general-ciphering · DD</h3><p>v1 解析 tx/双 ST/key-info/ciphered-content；构建放 v2。</p><div class="algo-io"><div><b>输入</b> DD 报文</div><div><b>输出</b> 字段树 · 内层 APDU</div></div><div class="algo-spec">§9.5 · Table 49</div></button>
+          <button class="algo-card planned" data-cat="plan" data-toast="V.44 只省带宽、不是密码学；v1 只保留说明入口。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-grid"/></svg></span><span class="pill pill-plan">规划中</span></div><h3>V.44 压缩</h3><p>Suite 1/2 的 SC bit7；与加解密链路耦合较深。</p><div class="algo-io"><div><b>输入</b> 压缩数据</div><div><b>输出</b> 原始数据</div></div><div class="algo-spec">§9.2.3.6</div></button>
+          <button class="algo-card planned" data-cat="plan" data-toast="Suite 3–15 在 Ed.11 中保留，可能是后量子方向；不猜算法。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-grid"/></svg></span><span class="pill pill-plan">保留</span></div><h3>Security Suite 3–15</h3><p>规范保留值，尚无 Ed.11 算法定义。</p><div class="algo-io"><div><b>输入</b> —</div><div><b>输出</b> —</div></div><div class="algo-spec">Table 27</div></button>
+          <button class="algo-card planned" data-cat="plan" data-toast="证书签发/CSR 需要额外 ASN.1 编码器，放 v2。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-plan">规划中</span></div><h3>证书签发 / CSR</h3><p>自签名测试证书、CSR 生成；v1 不做。</p><div class="algo-io"><div><b>输入</b> 主体 · 公钥 · 私钥</div><div><b>输出</b> DER 证书 / CSR</div></div><div class="algo-spec">RFC 5280</div></button>
+        </div>
+      </section>
+
+      <!-- ============ CERT ============ -->
+      <section class="view" id="view-cert">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Certificates · 07</p>
+            <h1>X.509 证书</h1>
+            <p class="lede">解析 DLMS 证书、验证签名与用途、提取 DLMS key_data 需要的原始公钥；明确区分“密码学校验”与“信任锚判断”。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">可用</span><span class="badge">P-256 / P-384</span></div>
+        </div>
+        <div class="cert-grid">
+          <div class="card cert-left">
+            <div class="dropzone">
+              <div class="big"><svg class="ico"><use href="#i-badge"/></svg></div>
+              <strong>拖入 PEM / DER 证书</strong>
+              <p>支持单张或多张证书链；PEM 头尾可保留。</p>
+              <button class="btn small ghost" data-toast="文件选择将在实现阶段接入；预览中不读取本地文件。">选择文件</button>
+            </div>
+            <ul class="chain">
+              <li class="chain-item"><span class="dot" style="background:var(--faint)"></span><div>Example DLMS Root CA<small>自签名 · CA=TRUE</small></div></li>
+              <li class="chain-item"><span class="dot" style="background:var(--accent)"></span><div>Example DLMS Intermediate<small>由 Root 签发 · CA=TRUE</small></div></li>
+              <li class="chain-item active"><span class="dot"></span><div>DLMS-SERVER-0001<small>终端实体 · 当前查看</small></div></li>
+            </ul>
+            <div class="note" style="margin-top:12px">示例占位数据，未执行真实解析。实现后会显示每张证书的 Subject CN、有效期与链状态。</div>
+          </div>
+          <div class="card cert-right">
+            <h3>证书摘要 <span class="pill">示例</span></h3>
+            <dl class="kv">
+              <dt>Subject</dt><dd>CN=DLMS-SERVER-0001, O=Example Utility, C=CN</dd>
+              <dt>Issuer</dt><dd>CN=Example DLMS Intermediate, O=Example Utility, C=CN</dd>
+              <dt>Serial</dt><dd>5A:3F:19:07:2C:88:41:DE</dd>
+              <dt>Validity</dt><dd>2026-01-01 → 2031-01-01</dd>
+              <dt>Public key</dt><dd>P-256 · 04 7C 2A 9E … 51 D8</dd>
+              <dt>Signature</dt><dd>ECDSA with SHA-256</dd>
+              <dt>SHA-256</dt><dd>9F:2C:71:…:BE:40</dd>
+            </dl>
+            <div class="cert-section">
+              <h4>Key Usage</h4>
+              <div class="badge-row"><span class="mini-badge">digitalSignature</span><span class="mini-badge">keyAgreement</span><span class="mini-badge" style="opacity:.55">keyCertSign</span></div>
+            </div>
+            <div class="cert-section">
+              <h4>验证</h4>
+              <div class="verify-row">
+                <button class="btn small primary" data-toast="实现阶段会用签发者公钥验证证书签名；证书内签名是 DER，先转 raw 再交给 WebCrypto。">验证证书签名</button>
+                <button class="btn small ghost" data-toast="实现阶段会显示失败原因：签名不匹配 / 过期 / keyUsage 不符 / 曲线不匹配。">查看校验明细</button>
+                <span class="hint" style="font-size:9px;color:var(--faint)">不做信任锚 / CRL / OCSP</span>
+              </div>
+            </div>
+            <div class="cert-section">
+              <h4>提取公钥</h4>
+              <div class="key-actions">
+                <button class="btn small ghost" data-copy="7C2A9E0000000000000000000000000000000000000000000000000000000000">X‖Y · DLMS key_data</button>
+                <button class="btn small ghost" data-copy="047C2A9E00000000000000000000000000000000000000000000000000000000">04‖X‖Y</button>
+                <button class="btn small ghost" data-toast="SPKI PEM / JWK 导出在实现阶段加入。">SPKI / JWK</button>
+              </div>
+            </div>
+            <div class="cert-section">
+              <h4>用此证书验 DLMS 签名</h4>
+              <div class="note">DLMS 报文签名是 plain R‖S（64/96 B）；证书内部签名是 DER。工具会自动识别并转换，避免把两种格式混用。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PLACEHOLDER ============ -->
+      <section class="view" id="view-placeholder">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Design placeholder</p>
+            <h1 id="phTitle">页面设计</h1>
+            <p class="lede" id="phLede">该页的完整字段、校验与交互已在 DESIGN.md 中定义；这里只展示页面骨架。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-plan">待实现</span></div>
+        </div>
+        <div class="card placeholder-card">
+          <div class="big"><svg class="ico"><use href="#i-grid"/></svg></div>
+          <h2 id="phHeading">页面骨架</h2>
+          <p id="phBody">确认设计方案后，会复用报文保护页的 ByteField、结果字节视图与字段表组件实现该页。</p>
+          <div class="mini-wire"><div>参数输入</div><div>结果 / 字节视图</div><div class="wide">字段表 · 校验轨迹 · 测试向量</div></div>
+          <a class="btn small ghost" href="DESIGN.md" target="_blank">打开设计方案</a>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="mobile-bar">
+  <button class="btn primary" id="mobileCompute">计算</button>
+  <span class="status-mini">✓ 示例结果</span>
+  <button class="icon-btn" data-toast="更多操作（载入向量 / 重置 / 下载）在移动端放入溢出菜单；实现阶段接入。" aria-label="更多操作">⋯</button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var viewMeta = {
+    aes: {title:"报文保护", lede:"把一条 xDLMS APDU 封装成 DLMS 安全报文。先定 Suite 与保护模式，再填 ST / IC / 密钥；结果区会把 SC、IC、密文、tag 逐字节摊开。"},
+    gmac: {title:"GMAC 认证", lede:"GMAC 是 GCM 在明文为空时的特例：只对 AAD 生成 tag。报文内容仍然可读，但被完整性保护；HLS-5 也复用这条路径。"},
+    hls: {title:"HLS 双向认证", lede:"mechanism 3/4/5/6/7 的双向质询-应答。切换方向时，system title 与质询值的顺序会自动翻转。"},
+    keys: {title:"密钥工具", lede:"AES Key Wrap、ECDH + KDF、KDF 单算与随机密钥生成。原始私钥 d 会在本地推导公钥。"},
+    hash: {title:"哈希与校验", lede:"SHA-256/384/512、SHA-1、MD5、HMAC 与 CRC/FCS。支持文本、HEX 与文件输入。"},
+    sign: {title:"数字签名", lede:"ECDSA 签名/验签；DLMS plain R‖S 与证书 DER 互转；支持原始私钥 d。"},
+    cert: {title:"X.509 证书", lede:"解析 DLMS 证书、验证签名与用途、提取 DLMS key_data 需要的原始公钥；明确区分密码学校验与信任锚判断。"},
+    parse: {title:"报文解析", lede:"粘贴 HDLC / wrapper / 原始 APDU，自动识别安全层，校验 FCS，按字段拆分 SC、IC、密文与 tag。"},
+    registry: {title:"算法总览", lede:"按能力域组织的算法注册表。点“可用”卡片进入对应工作台；“规划中”只保留入口与规范说明。"},
+    vectors: {title:"测试向量", lede:"Table 48 / 51 / 52、Annex C.1 KDF、AES-KW、CRC、SHA/MD5 的浏览器内自检；支持逐字节对比。"}
+  };
+
+  var body = document.body;
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2600);
+  }
+
+  function setActiveNav(view){
+    document.querySelectorAll('.nav-item').forEach(function(b){
+      var on = b.getAttribute('data-view') === view;
+      b.classList.toggle('active', on);
+      if(on){ b.setAttribute('aria-current','page'); } else { b.removeAttribute('aria-current'); }
+    });
+  }
+
+  function go(view){
+    var target = document.getElementById('view-' + view);
+    var meta = viewMeta[view];
+    if(!target){
+      target = document.getElementById('view-placeholder');
+      document.getElementById('phTitle').textContent = meta ? meta.title : '页面设计';
+      document.getElementById('phLede').textContent = meta ? meta.lede : '该页的完整字段、校验与交互已在 DESIGN.md 中定义。';
+      document.getElementById('phHeading').textContent = (meta ? meta.title : '页面') + ' · 页面骨架';
+    }
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    target.classList.add('active');
+    document.getElementById('crumbTitle').textContent = meta ? meta.title : '页面设计';
+    setActiveNav(view);
+    body.classList.remove('nav-open');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  document.querySelectorAll('[data-view]').forEach(function(el){
+    el.addEventListener('click', function(){ go(el.getAttribute('data-view')); });
+  });
+
+  document.querySelectorAll('[data-toast]').forEach(function(el){
+    el.addEventListener('click', function(){ toast(el.getAttribute('data-toast')); });
+  });
+
+  document.getElementById('menuBtn').addEventListener('click', function(){ body.classList.toggle('nav-open'); });
+  document.getElementById('scrim').addEventListener('click', function(){ body.classList.remove('nav-open'); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ body.classList.remove('nav-open'); } });
+
+  function hexBytes(hex){
+    hex = (hex || '').replace(/0x/gi,'').replace(/[\s:\-]/g,'');
+    if(!hex || hex.length % 2) return [];
+    var out = [];
+    for(var i=0;i<hex.length;i+=2){ out.push(parseInt(hex.substr(i,2),16)); }
+    return out;
+  }
+  function toHex(bytes){ return bytes.map(function(b){ return b.toString(16).toUpperCase().padStart(2,'0'); }).join(' '); }
+  function toAscii(bytes){ return bytes.map(function(b){ return b>=32 && b<127 ? String.fromCharCode(b) : '·'; }).join(''); }
+  function toB64(bytes){
+    var s = ''; for(var i=0;i<bytes.length;i++){ s += String.fromCharCode(bytes[i]); }
+    try{ return btoa(s); }catch(e){ return ''; }
+  }
+  function toDec(hex){
+    var b = hexBytes(hex); if(b.length !== 4) return '';
+    return String(((b[0]<<24)>>>0) + (b[1]<<16) + (b[2]<<8) + b[3]);
+  }
+
+  var fieldFmt = {};
+  function renderField(id, fmt){
+    var el = document.getElementById(id);
+    if(!el) return;
+    var bytes = hexBytes(el.getAttribute('data-hex') || '');
+    fieldFmt[id] = fmt;
+    if(fmt === 'hex'){ el.value = toHex(bytes); }
+    else if(fmt === 'dec'){ el.value = toDec(el.getAttribute('data-hex') || ''); }
+    else if(fmt === 'ascii'){ el.value = toAscii(bytes); }
+    else if(fmt === 'b64'){ el.value = toB64(bytes); }
+    el.classList.remove('masked');
+  }
+
+  document.querySelectorAll('.fmt-group').forEach(function(group){
+    group.querySelectorAll('.fmt').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var target = group.getAttribute('data-target');
+        group.querySelectorAll('.fmt').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        if(target){ renderField(target, btn.getAttribute('data-fmt')); }
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-clear]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-clear');
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.value = '';
+      el.setAttribute('data-hex','');
+      toast('已清空该字段（预览中不执行撤销）');
+    });
+  });
+
+  document.querySelectorAll('[data-random]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.getAttribute('data-random');
+      var el = document.getElementById(id);
+      var len = parseInt(btn.getAttribute('data-len') || '16', 10);
+      if(!el) return;
+      var arr = new Uint8Array(len);
+      (window.crypto || window.msCrypto).getRandomValues(arr);
+      var hex = Array.prototype.map.call(arr, function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+      el.setAttribute('data-hex', hex);
+      renderField(id, fieldFmt[id] || 'hex');
+      toast('已生成 ' + len + ' B 随机值');
+    });
+  });
+
+  document.querySelectorAll('[data-mask]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var el = document.getElementById(btn.getAttribute('data-mask'));
+      if(el) el.classList.toggle('masked');
+    });
+  });
+
+  var stepBtn = document.querySelector('[data-step="ic"]');
+  if(stepBtn){
+    stepBtn.addEventListener('click', function(){
+      var el = document.getElementById('ic');
+      var b = hexBytes(el.getAttribute('data-hex') || '');
+      if(b.length !== 4) return;
+      var n = (((b[0]<<24)>>>0) + (b[1]<<16) + (b[2]<<8) + b[3] + 1) % 4294967296;
+      var hex = [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+      el.setAttribute('data-hex', hex);
+      renderField('ic', fieldFmt['ic'] || 'hex');
+      toast('IC 已 +1（预览演示）');
+    });
+  }
+
+  document.querySelectorAll('.seg').forEach(function(seg){
+    seg.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        seg.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        if(seg.getAttribute('data-seg') === 'mode'){
+          var dec = btn.getAttribute('data-mode') === 'dec';
+          document.getElementById('statusTitle').textContent = dec ? 'tag 校验通过 · 明文已恢复' : '已生成 12 B 认证标签';
+          document.getElementById('statusSub').textContent = dec ? 'Suite 0 · 认证+加密 · 发送方 ST = 4D4D…614E' : 'Suite 0 · 认证+加密 · glo-ciphering · C8';
+          document.getElementById('ioInLabel').textContent = dec ? '输入 · 完整密文' : '输入 · 明文 APDU';
+          document.getElementById('ioInCode').textContent = dec ? 'C8 1E 30 01 23 45 67 41 13 12 FF 93 5A 47 56 68 27 C4 67 BC 7D 82 5C 3B E4 A7 7C 3F CC 05 6B 6B' : 'C0 01 00 00 08 00 00 01 00 00 FF 02 00';
+          document.getElementById('ioInSize').textContent = dec ? '32 B' : '13 B';
+          document.getElementById('ioOutLabel').textContent = dec ? '输出 · 明文 APDU' : '输出 · 密文';
+          document.getElementById('ioOutCode').textContent = dec ? 'C0 01 00 00 08 00 00 01 00 00 FF 02 00' : '41 13 12 FF 93 5A 47 56 68 27 C4 67 BC';
+          document.getElementById('ioOutSize').textContent = '13 B';
+          toast(dec ? '解密模式：先验 tag，再解密（预览为静态示例）' : '加密模式：生成 C / T / 完整报文');
+        }
+        if(seg.getAttribute('data-seg') === 'protect'){
+          var p = btn.getAttribute('data-protect');
+          if(p !== 'ae'){ toast('该保护模式的字段与结果版式会在实现阶段联动；预览保持认证+加密示例。'); }
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('.tabs').forEach(function(tabs){
+    tabs.querySelectorAll('.tab').forEach(function(tab){
+      var paneId = tab.getAttribute('data-pane');
+      if(!paneId) return;
+      tab.addEventListener('click', function(){
+        tabs.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+        tab.classList.add('active'); tab.setAttribute('aria-selected','true');
+        var card = tab.closest('.result-card') || tab.closest('.card');
+        card.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('active'); });
+        var pane = document.getElementById('pane-' + paneId);
+        if(pane) pane.classList.add('active');
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-copy]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var text = btn.getAttribute('data-copy');
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ toast('已复制到剪贴板'); }, function(){ toast('浏览器拒绝了剪贴板访问'); });
+      } else { toast('当前浏览器不支持剪贴板 API'); }
+    });
+  });
+
+  var resultCard = document.getElementById('resultCard');
+  var computeBtn = document.getElementById('computeBtn');
+  function computeDemo(){
+    if(resultCard.classList.contains('is-empty')){
+      toast('请先填入参数，或载入 Table 48 向量');
+      return;
+    }
+    resultCard.classList.add('pulse');
+    setTimeout(function(){ resultCard.classList.remove('pulse'); }, 600);
+    toast('设计预览：这里将调用 GCM 引擎并刷新结果；当前为静态示例。');
+  }
+  if(computeBtn) computeBtn.addEventListener('click', computeDemo);
+  document.getElementById('mobileCompute').addEventListener('click', computeDemo);
+
+  function loadVector(){
+    var vals = {
+      st:'4D4D4D0000BC614E', ic:'01234567',
+      ek:'000102030405060708090A0B0C0D0E0F',
+      ak:'D0D1D2D3D4D5D6D7D8D9DADBDCDDDEDF',
+      pt:'C0010000080000010000FF0200'
+    };
+    Object.keys(vals).forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.setAttribute('data-hex', vals[id]);
+      renderField(id, fieldFmt[id] || 'hex');
+    });
+    resultCard.classList.remove('is-empty');
+    document.getElementById('statusBox').className = 'status ok';
+    document.getElementById('statusTitle').textContent = '已生成 12 B 认证标签';
+    document.getElementById('statusSub').textContent = 'Suite 0 · 认证+加密 · glo-ciphering · C8';
+    toast('已载入 Table 48 认证+加密向量');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  document.getElementById('loadVector').addEventListener('click', loadVector);
+  document.getElementById('loadVector2').addEventListener('click', loadVector);
+
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    ['st','ic','ek','ak','pt'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.value = ''; el.setAttribute('data-hex',''); }
+    });
+    resultCard.classList.add('is-empty');
+    document.getElementById('statusTitle').textContent = '等待参数';
+    document.getElementById('statusSub').textContent = '填入参数或载入 Table 48 向量';
+    document.getElementById('statusBox').className = 'status warn';
+    toast('已清空参数；点“载入 Table 48 向量”可恢复示例');
+  });
+
+  var suiteSelect = document.getElementById('suiteSelect');
+  function checkKey(id, want, footId, reqId, hintId, suite){
+    var el = document.getElementById(id);
+    if(!el) return;
+    var n = hexBytes(el.getAttribute('data-hex') || '').length;
+    var req = document.getElementById(reqId);
+    var foot = document.getElementById(footId);
+    var hint = document.getElementById(hintId);
+    req.textContent = want + ' B';
+    if(n === want){
+      foot.textContent = '✓ ' + want + ' 字节 / ' + (want * 8) + ' bit';
+      foot.className = 'ok-text';
+      if(id === 'ak'){
+        hint.textContent = '进 AAD：SC ‖ AK';
+      } else {
+        hint.textContent = suite === '0' ? 'AES 分组密钥 · Suite 0' : (suite === '1' ? 'AES-128 · Suite 1' : 'AES-256 · Suite 2');
+      }
+    } else if(n === 0){
+      foot.textContent = '待输入 ' + want + ' 字节';
+      foot.className = 'warn-text';
+      hint.textContent = 'Suite ' + suite + ' 需要 ' + want + ' B';
+    } else {
+      foot.textContent = '✗ Suite ' + suite + ' 需要 ' + want + ' B，当前 ' + n + ' B';
+      foot.className = 'bad-text';
+      hint.textContent = '长度不匹配';
+    }
+  }
+  function updateSuite(){
+    var s = suiteSelect.value;
+    var want = s === '2' ? 32 : 16;
+    var note = document.getElementById('suiteNote');
+    if(s === '0') note.textContent = 'EK/AK 16 B · tag 12 B · 无 ECC';
+    if(s === '1') note.textContent = 'AES-128 · P-256 · SHA-256 · EK/AK 16 B';
+    if(s === '2') note.textContent = 'AES-256 · P-384 · SHA-384 · EK/AK 32 B';
+    checkKey('ek', want, 'ekFoot', 'ekReq', 'ekHint', s);
+    checkKey('ak', want, 'akFoot', 'akReq', 'akHint', s);
+  }
+  suiteSelect.addEventListener('change', function(){
+    updateSuite();
+    toast('已切换到 Suite ' + suiteSelect.value + '；示例结果仍为 Suite 0，请重新计算。');
+  });
+  updateSuite();
+
+  document.querySelectorAll('.chain-item').forEach(function(item){
+    item.addEventListener('click', function(){
+      document.querySelectorAll('.chain-item').forEach(function(i){ i.classList.remove('active'); });
+      item.classList.add('active');
+      toast('预览：切换证书详情待实现');
+    });
+  });
+
+  document.querySelectorAll('#filters .filter').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#filters .filter').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var cat = btn.getAttribute('data-cat');
+      document.querySelectorAll('#algoGrid .algo-card').forEach(function(card){
+        var cats = (card.getAttribute('data-cat') || '').split(' ');
+        card.style.display = (cat === 'all' || cats.indexOf(cat) >= 0) ? '' : 'none';
+      });
+    });
+  });
+
+  // 初始化：把当前 HEX 值按默认格式渲染
+  ['st','ic','ek','ak','pt'].forEach(function(id){ fieldFmt[id] = 'hex'; });
+
+  // 允许用 #aes / #gmac / #registry / #cert 直接打开某一页（方便评审截图）
+  var initial = (location.hash || '').replace(/^#\/?/, '');
+  if(initial && (document.getElementById('view-' + initial) || viewMeta[initial])){
+    go(initial);
+  }
+})();
+</script>
+</body>
+</html>
