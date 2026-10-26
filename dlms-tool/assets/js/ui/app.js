@@ -1130,6 +1130,17 @@
     ];
     if (isEc) kvPairs.push(["X‖Y", pub.rawXY, "kv-hex"]);
     kvPairs.push(["Signature", c.signatureAlgorithm.name], ["SHA-256", B.bytesToHex(fp)]);
+    var removeHtml = '<div class="cert-section" id="cert-remove"><h4>remove_certificate 参数 <span class="hint">class_id 64 · method 8 · data ::= certificate_identification</span></h4>' +
+      '<div class="control-grid single"><div><span class="control-label">识别方式</span><div class="seg" id="rc-mode"><button class="active" data-rc-mode="serial">by_serial</button><button data-rc-mode="entity">by_entity</button></div></div></div>' +
+      '<div class="control-grid three" id="rc-entity-fields" hidden>' +
+        '<div><span class="control-label">certificate_entity</span><select class="select" id="rc-entity-sel"><option value="0">0 · server</option><option value="1">1 · client</option><option value="2">2 · certification authority</option><option value="3">3 · other</option></select></div>' +
+        '<div><span class="control-label">certificate_type</span><select class="select" id="rc-type-sel"><option value="0">0 · digital signature</option><option value="1">1 · key agreement</option><option value="2">2 · TLS</option><option value="3">3 · other</option></select></div>' +
+        '<div><span class="control-label">system_title</span><input class="mono-input" id="rc-st" spellcheck="false" placeholder="16 HEX / 8 B"></div>' +
+      "</div>" +
+      '<div class="field"><div class="field-head"><label for="rc-hex">参数 HEX（A-XDR）</label><div class="field-tools"><button class="mini-btn" id="rc-copy">复制</button></div></div><textarea class="mono-input" id="rc-hex" spellcheck="false" readonly style="min-height:78px"></textarea></div>' +
+      '<div id="rc-fields"></div>' +
+      '<div class="hint" id="rc-hint" style="margin-top:6px"></div>' +
+      "</div>";
     var html = '<h3>证书摘要 <span class="pill pill-ok">已解析</span></h3>' +
       UI.renderKV(kvPairs) +
       '<div class="cert-section"><h4>Key Usage</h4><div class="badge-row">' +
@@ -1147,6 +1158,7 @@
       "</div>" +
       (isEc ? '<div class="hint" style="margin-top:6px">DLMS key_data 用原始 X‖Y；X.509 SPKI 里是 04‖X‖Y。不要把 04 一起塞进 key_data。</div>' : '<div class="hint" style="margin-top:6px">RSA 证书只做证书签名验证；DLMS 的 key_data / HLS-7 用 EC 公钥。</div>') +
       "</div>" +
+      removeHtml +
       chainHtml +
       (isEc ? '<div class="cert-section"><h4>用此证书验 DLMS 签名</h4>' +
         '<div class="field"><div class="field-head"><label for="cert-dlms-msg">消息</label></div><textarea class="mono-input" id="cert-dlms-msg" spellcheck="false">DLMS</textarea></div>' +
@@ -1173,6 +1185,90 @@
         $("#cert-dlms-status").innerHTML = ok ? '<span class="ok-text">✓ 验签通过</span>' : '<span class="bad-text">✗ 验签失败</span>';
       } catch (e) { $("#cert-dlms-status").innerHTML = '<span class="bad-text">✗ ' + UI.esc(e.message) + "</span>"; }
     });
+    initRemoveCertSection(c);
+  }
+
+  /* remove_certificate (class_id 64, method 8) 的参数：certificate_identification。
+     蓝皮书 §4.4.7.3.7 / §4.4.7.3.8；两种定位方式，参数 HEX 与字段表联动。 */
+  function initRemoveCertSection(c) {
+    var box = document.getElementById("cert-remove");
+    if (!box) return;
+    var entitySel = document.getElementById("rc-entity-sel");
+    var typeSel = document.getElementById("rc-type-sel");
+    var stInput = document.getElementById("rc-st");
+    var hexArea = document.getElementById("rc-hex");
+    var fieldBox = document.getElementById("rc-fields");
+    var hint = document.getElementById("rc-hint");
+    var mode = "serial";
+
+    var bcExt = c.extensions["2.5.29.19"];
+    var kuExt = c.extensions["2.5.29.15"];
+    var ekuExt = c.extensions["2.5.29.37"];
+    var usages = kuExt && kuExt.value && kuExt.value.usages ? kuExt.value.usages : [];
+    var ekuOids = ekuExt && ekuExt.value && ekuExt.value.usages ? ekuExt.value.usages : [];
+    var cnPart = c.subject.parts.find(function (p) { return p.name === "CN"; });
+    var cn = cnPart ? String(cnPart.value) : "";
+    var isCa = !!(bcExt && bcExt.value && bcExt.value.ca);
+
+    entitySel.value = isCa ? "2" : "0";
+    typeSel.value = (ekuOids.indexOf("1.3.6.1.5.5.7.3.1") >= 0 || ekuOids.indexOf("1.3.6.1.5.5.7.3.2") >= 0)
+      ? "2"
+      : usages.indexOf("keyAgreement") >= 0 ? "1"
+        : usages.indexOf("digitalSignature") >= 0 ? "0" : "3";
+    stInput.value = /^[0-9A-Fa-f]{16}$/.test(cn) ? (cn.toUpperCase().match(/../g) || []).join(" ") : "";
+
+    function update() {
+      var opts;
+      if (mode === "entity") {
+        var st = stInput.value.replace(/[^0-9A-Fa-f]/g, "");
+        opts = {
+          mode: "entity",
+          entity: parseInt(entitySel.value, 10),
+          certType: parseInt(typeSel.value, 10),
+          systemTitle: st ? B.hexToBytes(st) : null
+        };
+      } else {
+        opts = { mode: "serial", serialDer: c.serialDer, issuerDer: c.issuer.raw };
+      }
+      try {
+        var r = D.encodeCertificateIdentification(opts);
+        hexArea.value = B.bytesToHex(r.bytes);
+        hexArea.classList.remove("invalid");
+        fieldBox.innerHTML = UI.renderFieldTable(r.fields);
+        hint.className = "hint";
+        hint.textContent = mode === "entity"
+          ? "by_entity 按 实体 + 类型 + system title 定位；服务端自己的签名 / 协商 / TLS 证书不能删。"
+          : "by_serial 用当前证书的 serial（DER INTEGER TLV）与 issuer（DER Name TLV）定位，CA 与终端证书都适用。";
+        if (mode === "entity" && isCa) hint.textContent += "这张是 CA 证书，没有 system title，删除时建议用 by_serial。";
+      } catch (e) {
+        hexArea.value = "";
+        fieldBox.innerHTML = "";
+        hint.className = "hint bad-text";
+        var msg = e.message;
+        if (mode === "entity" && !st) {
+          msg = isCa
+            ? "这张是 CA 证书，通常没有 system title：删 CA 请切回 by_serial，或手工填 8 B system title"
+            : "请填 system title（8 B / 16 HEX）";
+        }
+        hint.textContent = msg;
+      }
+    }
+
+    $$("#rc-mode button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        mode = b.getAttribute("data-rc-mode");
+        UI.setSegment(document.getElementById("rc-mode"), "data-rc-mode", mode);
+        document.getElementById("rc-entity-fields").hidden = mode !== "entity";
+        update();
+      });
+    });
+    [entitySel, typeSel].forEach(function (el) { el.addEventListener("change", update); });
+    stInput.addEventListener("input", update);
+    document.getElementById("rc-copy").addEventListener("click", function () {
+      if (!hexArea.value) { toast("还没有可复制的参数"); return; }
+      UI.copyText(hexArea.value);
+    });
+    update();
   }
 
   /* ============================================================

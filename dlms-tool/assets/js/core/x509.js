@@ -330,7 +330,8 @@
       version = Number(parseIntTlv(vTlv)) + 1;
       i++;
     }
-    var serial = parseIntTlv(kids[i++]);
+    var serialTlv = kids[i++];
+    var serial = parseIntTlv(serialTlv);
     var tbsSigAlg = parseAlgorithm(kids[i++]);
     var issuer = parseName(kids[i++]);
     var validityTlv = expect(kids[i++], 0x30, "Validity");
@@ -355,6 +356,7 @@
       tbsDer: tbs.raw,
       version: version,
       serial: B.bytesToHexCompact(serialToBytes(serial)),
+      serialDer: serialTlv.raw,
       serialBigInt: serial,
       signatureAlgorithm: outerSigAlg,
       tbsSignatureAlgorithm: tbsSigAlg,

@@ -460,6 +460,7 @@ SC 的低 4 位是 suite，bit 4 = A（认证），bit 5 = E（加密）。
   - 验签：选择链中的签发者或粘贴签发者公钥 → 验证证书签名；显示“密码学校验通过 / 失败原因”。
   - 公钥提取：`X‖Y`（DLMS key_data）、`04‖X‖Y`、SPKI PEM、JWK；一键复制。
   - 用此证书验 DLMS 签名：消息 + raw/DER 签名 → 结果。
+  - remove_certificate 参数：按 `by_serial` / `by_entity` 生成 class_id 64 方法 8 的 `certificate_identification`（A-XDR HEX + 字段表 + 复制）。
 - **明确声明**：不做信任锚、CRL、OCSP；过期/未生效只做时间检查。
 - **规划中**：证书签发、CSR 生成（灰显入口）。
 

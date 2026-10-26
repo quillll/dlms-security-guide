@@ -492,6 +492,46 @@ function eqHex(actual, expected, label) {
     assert.ok(tls.cert.extensions["2.5.29.37"].value.usages.includes("1.3.6.1.5.5.7.3.1"));
   });
 
+  console.log("certificate_identification（remove_certificate 参数）");
+  await test("by_serial 原样嵌入证书的 serial / issuer TLV", async () => {
+    const pem = fs.readFileSync(path.join(__dirname, "fixtures", "p384.pem"), "utf8");
+    const cert = X509.parseCertificate(X509.parsePem(pem)[0].der);
+    assert.strictEqual(cert.serialDer[0], 0x02);
+    const r = D.encodeCertificateIdentification({ mode: "serial", serialDer: cert.serialDer, issuerDer: cert.issuer.raw });
+    eqHex(r.bytes.slice(0, 6), "0202" + "1601" + "0202");
+    const sn = r.fields.find(f => f.name === "serial_number");
+    assert.strictEqual(sn.offset, 6);
+    assert.strictEqual(r.bytes[6], 0x09);
+    assert.strictEqual(r.bytes[7], cert.serialDer.length);
+    assert.deepStrictEqual(Array.from(r.bytes.slice(8, 8 + cert.serialDer.length)), Array.from(cert.serialDer));
+    const iss = r.fields.find(f => f.name === "issuer");
+    const issBody = iss.offset + 1 + D.encodeLength(cert.issuer.raw.length).length;
+    assert.deepStrictEqual(Array.from(r.bytes.slice(issBody, issBody + cert.issuer.raw.length)), Array.from(cert.issuer.raw));
+    assert.strictEqual(r.bytes.length, iss.offset + iss.length);
+  });
+  await test("by_entity 编码与 system title 校验", async () => {
+    const r = D.encodeCertificateIdentification({
+      mode: "entity", entity: 1, certType: 1, systemTitle: B.hexToBytes("4D4D4D0000BC614E")
+    });
+    eqHex(r.bytes, "0202" + "1600" + "0203" + "1601" + "1601" + "0908" + "4D4D4D0000BC614E");
+    assert.strictEqual(r.bytes.length, 20);
+    assert.strictEqual(r.fields[2].name, "options");
+    assert.throws(() => D.encodeCertificateIdentification({
+      mode: "entity", entity: 0, certType: 0, systemTitle: new Uint8Array(7)
+    }), /System Title/);
+  });
+  await test("长 issuer 用 0x81 长度形式", async () => {
+    const serialDer = B.hexToBytes("020101");
+    const longIssuer = B.concat(new Uint8Array([0x30, 0x81, 0x80]), new Uint8Array(128));
+    const r = D.encodeCertificateIdentification({ mode: "serial", serialDer, issuerDer: longIssuer });
+    const iss = r.fields.find(f => f.name === "issuer");
+    assert.strictEqual(iss.offset, 6 + (1 + 1 + serialDer.length));
+    assert.strictEqual(r.bytes[iss.offset], 0x09);
+    assert.strictEqual(r.bytes[iss.offset + 1], 0x81);
+    assert.strictEqual(r.bytes[iss.offset + 2], longIssuer.length);
+    assert.strictEqual(r.bytes.length, iss.offset + iss.length);
+  });
+
   console.log("");
   console.log(passed + " passed, " + failed + " failed");
   process.exit(failed ? 1 : 0);

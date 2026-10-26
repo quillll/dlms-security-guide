@@ -103,6 +103,51 @@
     };
   }
 
+  var CERT_ENTITY_LABEL = { 0: "server", 1: "client", 2: "certification authority", 3: "other" };
+  var CERT_TYPE_LABEL = { 0: "digital signature", 1: "key agreement", 2: "TLS", 3: "other" };
+
+  /* Security setup（class_id 64）方法 8 remove_certificate(data) 的 data 参数：
+     certificate_identification（蓝皮书 §4.4.7.3.7 / §4.4.7.3.8）。
+     A-XDR 里 CHOICE 分支不加标签字节，靠 certificate_identification_type 区分；
+     与 Gurux C# / Java 的编码一致。 */
+  function encodeCertificateIdentification(opts) {
+    opts = opts || {};
+    var byEntity = opts.mode === "entity" || opts.mode === 0;
+    var parts = [], fields = [], pos = 0;
+    function push(name, bytes, note, color) {
+      parts.push(bytes);
+      fields.push({
+        name: name, offset: pos, length: bytes.length,
+        value: B.bytesToHexCompact(bytes), note: note || "", color: color || "plain"
+      });
+      pos += bytes.length;
+    }
+    push("structure", new Uint8Array([0x02, 0x02]), "certificate_identification：2 个元素", "tag");
+    if (byEntity) {
+      var st = opts.systemTitle;
+      if (!(st instanceof Uint8Array) || st.length !== 8) throw new Error("System Title 必须是 8 字节（16 位 HEX）");
+      var entity = Number(opts.entity);
+      var certType = Number(opts.certType);
+      if (!(entity >= 0 && entity <= 3)) throw new Error("certificate_entity 只能是 0..3");
+      if (!(certType >= 0 && certType <= 3)) throw new Error("certificate_type 只能是 0..3");
+      push("identification_type", new Uint8Array([0x16, 0x00]), "enum 0 = by_entity", "ct");
+      push("options", new Uint8Array([0x02, 0x03]), "certificate_identification_by_entity：3 个元素", "tag");
+      push("certificate_entity", new Uint8Array([0x16, entity]), "enum " + entity + " = " + (CERT_ENTITY_LABEL[entity] || "?"), "ct");
+      push("certificate_type", new Uint8Array([0x16, certType]), "enum " + certType + " = " + (CERT_TYPE_LABEL[certType] || "?"), "ct");
+      push("system_title", B.concat(new Uint8Array([0x09]), encodeLength(st.length), st), "octet-string " + st.length + " B", "plain");
+    } else {
+      var serialDer = opts.serialDer;
+      var issuerDer = opts.issuerDer;
+      if (!serialDer || !serialDer.length) throw new Error("缺少序列号的 DER INTEGER TLV");
+      if (!issuerDer || !issuerDer.length) throw new Error("缺少签发者 Name 的 DER TLV");
+      push("identification_type", new Uint8Array([0x16, 0x01]), "enum 1 = by_serial", "ct");
+      push("options", new Uint8Array([0x02, 0x02]), "certificate_identification_by_serial：2 个元素", "tag");
+      push("serial_number", B.concat(new Uint8Array([0x09]), encodeLength(serialDer.length), serialDer), "octet-string 里放 serial 的 DER INTEGER TLV（不是裸序号）", "plain");
+      push("issuer", B.concat(new Uint8Array([0x09]), encodeLength(issuerDer.length), issuerDer), "octet-string 里放 issuer 的 DER Name TLV", "plain");
+    }
+    return { bytes: B.concat.apply(B, parts), fields: fields };
+  }
+
   function ivFor(st, ic) {
     if (!st || st.length !== 8) throw new Error("System Title 必须是 8 B");
     if (!ic || ic.length !== 4) throw new Error("IC 必须是 4 B");
@@ -484,6 +529,7 @@
     decodeLength: decodeLength,
     readOctetString: readOctetString,
     writeOctetString: writeOctetString,
+    encodeCertificateIdentification: encodeCertificateIdentification,
     ivFor: ivFor,
     aadFor: aadFor,
     protect: protect,
