@@ -408,7 +408,7 @@
 
   function renderKV(pairs) {
     return '<dl class="kv">' + pairs.map(function (p) {
-      return "<dt>" + esc(p[0]) + "</dt><dd>" + esc(p[1] == null ? "" : p[1]) + "</dd>";
+      return "<dt>" + esc(p[0]) + "</dt><dd" + (p[2] ? ' class="' + esc(p[2]) + '"' : "") + ">" + esc(p[1] == null ? "" : p[1]) + "</dd>";
     }).join("") + "</dl>";
   }
 

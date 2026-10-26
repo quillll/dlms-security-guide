@@ -1118,17 +1118,20 @@
           return '<div class="hint" style="margin:3px 0">' + (i + 1) + ". " + UI.esc(l.subject) + " ← " + UI.esc(l.issuer) + "：" + (l.ok ? "✓ 通过" : "✗ " + (l.signature.reason || l.validity.reason || "失败")) + "</div>";
         }).join("") + "</div>";
     }
+    var kvPairs = [
+      ["Subject", c.subject.text],
+      ["Issuer", c.issuer.text],
+      ["Serial", c.serial],
+      ["Version", "v" + c.version],
+      ["Validity", c.notBefore.iso + " → " + c.notAfter.iso],
+      ["Public key", isEc
+        ? (c.spki.curveName || "EC") + " · X‖Y " + ((pub.rawXY.length + 1) / 3) + " B"
+        : (c.spki.algorithm.name || "RSA") + " · " + c.spki.publicKeyBytes.length + " B（ASN.1，完整值见「复制 SPKI PEM」）"]
+    ];
+    if (isEc) kvPairs.push(["X‖Y", pub.rawXY, "kv-hex"]);
+    kvPairs.push(["Signature", c.signatureAlgorithm.name], ["SHA-256", B.bytesToHex(fp)]);
     var html = '<h3>证书摘要 <span class="pill pill-ok">已解析</span></h3>' +
-      UI.renderKV([
-        ["Subject", c.subject.text],
-        ["Issuer", c.issuer.text],
-        ["Serial", c.serial],
-        ["Version", "v" + c.version],
-        ["Validity", c.notBefore.iso + " → " + c.notAfter.iso],
-        ["Public key", (c.spki.curveName || c.spki.algorithm.name) + " · " + pub.rawXY.slice(0, 24) + "…"],
-        ["Signature", c.signatureAlgorithm.name],
-        ["SHA-256", B.bytesToHex(fp)]
-      ]) +
+      UI.renderKV(kvPairs) +
       '<div class="cert-section"><h4>Key Usage</h4><div class="badge-row">' +
       (ku && ku.value && ku.value.usages ? ku.value.usages.map(function (u) { return '<span class="mini-badge">' + UI.esc(u) + "</span>"; }).join("") : '<span class="hint">未声明</span>') +
       "</div>" +
@@ -1271,7 +1274,7 @@
     }
 
     function growTextarea(el) {
-      if (!el || el.offsetParent === null) return;
+      if (!el || !el.style || el.offsetParent === null) return;
       el.style.height = "auto";
       el.style.height = Math.min(el.scrollHeight + 2, 640) + "px";
     }
@@ -1423,7 +1426,9 @@
         if (out.privateKeyRaw) keyLines.push("私钥 d (" + out.privateKeyRaw.length + " B): " + B.bytesToHexCompact(out.privateKeyRaw));
         else keyLines.push("私钥 d: （CSR 模式，私钥在设备内，不导出）");
         $("#cg-out-keyhex").value = keyLines.join("\n");
-        ["cg-out-cert", "cg-out-key", "cg-out-der", "cg-out-keyhex"].forEach(growTextarea);
+        ["cg-out-cert", "cg-out-key", "cg-out-der", "cg-out-keyhex"].forEach(function (id) {
+          growTextarea(document.getElementById(id));
+        });
         $("#cg-out-badge").textContent = isCSR ? "已签发 CSR" : "已生成";
 
         if (isCA) {
