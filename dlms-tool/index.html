@@ -54,6 +54,7 @@ window.addEventListener("unhandledrejection", function (e) {
       <button class="nav-item" data-view="hash"><svg class="ico"><use href="#i-finger"/></svg>哈希与校验</button>
       <button class="nav-item" data-view="sign"><svg class="ico"><use href="#i-pen"/></svg>数字签名</button>
       <button class="nav-item" data-view="cert"><svg class="ico"><use href="#i-badge"/></svg>证书</button>
+      <button class="nav-item" data-view="certgen"><svg class="ico"><use href="#i-badge"/></svg>证书签发</button>
 
       <div class="nav-label">参考</div>
       <button class="nav-item" data-view="registry"><svg class="ico"><use href="#i-grid"/></svg>算法总览</button>
@@ -318,6 +319,7 @@ window.addEventListener("unhandledrejection", function (e) {
           <button class="filter" data-keys-tab="ecdh">ECDH + KDF</button>
           <button class="filter" data-keys-tab="kdf">KDF</button>
           <button class="filter" data-keys-tab="random">随机密钥</button>
+          <button class="filter" data-keys-tab="pk">私钥推导公钥</button>
         </div>
 
         <div class="keys-pane" data-keys-pane="kw">
@@ -380,6 +382,23 @@ window.addEventListener("unhandledrejection", function (e) {
             <div class="right-stack"><div class="card card-pad"><h3>说明</h3><div class="note">随机密钥只在本页内存中生成，不会上传或持久化。测试向量使用规范公开示例，不要用于生产。</div></div></div>
           </div>
         </div>
+
+        <div class="keys-pane" data-keys-pane="pk" hidden>
+          <div class="tool-grid">
+            <div class="card card-pad">
+              <h3>私钥推导公钥 / 密钥 HEX 解析</h3>
+              <div class="control-grid"><div><span class="control-label">曲线</span><select class="select" id="pk-curve"><option value="auto">自动识别</option><option value="P-256">P-256</option><option value="P-384">P-384</option></select></div><div><span class="control-label">可识别输入</span><div class="hint" style="padding-top:9px">PKCS#8 PEM · JWK · 原始 HEX</div></div></div>
+              <div class="field"><div class="field-head"><label for="pk-input">私钥或公钥</label><div class="field-tools"><button class="mini-btn danger" data-clear="pk-input">清空</button></div></div><textarea class="mono-input" id="pk-input" spellcheck="false" placeholder="私钥：-----BEGIN PRIVATE KEY----- …；或 d 的 HEX（32/48 B）&#10;公钥：-----BEGIN PUBLIC KEY----- …；或 X‖Y（64/96 B）、04‖X‖Y（65/97 B）"></textarea><div class="field-foot"><span class="hint">私钥会推算公钥；公钥只解析出 HEX，不反推私钥</span></div></div>
+              <div class="actions"><button class="btn primary" id="pk-run">推导 / 解析</button><button class="btn ghost" id="pk-sample">载入示例私钥</button></div>
+            </div>
+            <div class="right-stack"><div class="card card-pad">
+              <h3>结果 <span class="badge" id="pk-status">等待输入</span></h3>
+              <div class="field"><div class="field-head"><label for="pk-out-pub">公钥 HEX</label><div class="field-tools"><button class="mini-btn" id="pk-copy-pub">复制</button></div></div><textarea class="mono-input" id="pk-out-pub" readonly spellcheck="false" style="min-height:95px" placeholder="X‖Y 与 04‖X‖Y 两行"></textarea></div>
+              <div class="field"><div class="field-head"><label for="pk-out-priv">私钥 HEX</label><div class="field-tools"><button class="mini-btn" id="pk-copy-priv">复制</button></div></div><textarea class="mono-input" id="pk-out-priv" readonly spellcheck="false" style="min-height:60px" placeholder="输入私钥时显示 d；输入公钥时为空"></textarea></div>
+              <div class="field-foot"><span class="hint" id="pk-out-meta">曲线、输入类型与字节长度</span></div>
+            </div></div>
+          </div>
+        </div>
       </section>
 
       <!-- ================= 哈希与校验 ================= -->
@@ -431,7 +450,7 @@ window.addEventListener("unhandledrejection", function (e) {
             </div>
             <div class="field" data-sign-for="sign"><div class="field-head"><label for="sign-priv">私钥（PKCS#8 / JWK / 原始 d）</label><div class="field-tools"><button class="mini-btn" id="sign-gen">生成密钥对</button></div></div><textarea class="mono-input" id="sign-priv" spellcheck="false">E9A045346B2057F1820318AB125493E9AB36CE590011C0FF30090858A118DD2E</textarea><div class="field-foot"><span class="hint">原始 d：32/48 B；PEM 以 BEGIN 开头；JWK 以 { 开头</span></div></div>
             <div class="field" data-sign-for="verify"><div class="field-head"><label for="sign-pub">公钥 / 证书（X‖Y、04‖X‖Y、SPKI PEM、证书 PEM）</label></div><textarea class="mono-input" id="sign-pub" spellcheck="false">917DBFECA43307375247989F07CC23F53D4B963AF8026C749DB33852011056DFDBE8327BD69CC149F018A8E446DDA6C55BCD78E596A56D403236233F93CC89B3</textarea><div class="field-foot"><span class="hint">粘贴证书 PEM 会自动取公钥</span></div></div>
-            <div class="field"><div class="field-head"><label for="sign-msg">消息</label></div><textarea class="mono-input" id="sign-msg" spellcheck="false">DLMS interoperability</textarea><div class="field-foot"><span class="hint">HLS-7 请用 HLS 页拼消息；这里签原始消息</span></div></div>
+            <div class="field"><div class="field-head"><label for="sign-msg">消息（ASCII / HEX）</label><div class="field-tools"><div class="seg" id="sign-msg-format"><button class="active" data-sfmt="ascii">ASCII</button><button data-sfmt="hex">HEX</button></div></div></div><textarea class="mono-input" id="sign-msg" spellcheck="false">DLMS interoperability</textarea><div class="field-foot"><span class="hint" id="sign-msg-hint">ASCII/UTF-8 按字节编码；切到 HEX 可签二进制质询</span></div></div>
             <div class="field"><div class="field-head"><label for="sign-sig">签名（验签时粘贴；raw 或 DER）</label></div><textarea class="mono-input" id="sign-sig" spellcheck="false" placeholder="64/96 B plain R‖S，或 30… DER"></textarea><div class="field-foot"><span class="hint">raw↔DER 会自动识别</span></div></div>
             <div class="actions"><button class="btn primary" id="sign-run">执行</button><button class="btn ghost" id="sign-raw2der">raw → DER</button><button class="btn ghost" id="sign-der2raw">DER → raw</button></div>
           </div>
@@ -469,6 +488,65 @@ window.addEventListener("unhandledrejection", function (e) {
         </div>
       </section>
 
+      <!-- ================= 证书签发 ================= -->
+      <section class="view" id="view-certgen">
+        <div class="page-head">
+          <div>
+            <p class="kicker">Certificate issuance · 07b</p>
+            <h1>证书签发 <span class="h1-sub">DLMS profile</span></h1>
+            <p class="lede">在本地生成 Root-CA、Sub-CA 与终端证书。扩展按 DLMS 规则自动配置：CA 用 keyCertSign，签名证书用 digitalSignature，协商证书用 keyAgreement，TLS 证书加 EKU。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">本地生成</span><span class="badge">P-256 · P-384</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <h3>1 · 主体与用途</h3>
+            <div class="control-grid three">
+              <div><span class="control-label">安全套件</span><select class="select" id="cg-suite"><option value="2" selected>Suite 2 · P-384 / SHA-384</option><option value="1">Suite 1 · P-256 / SHA-256</option></select></div>
+              <div><span class="control-label">证书角色</span><select class="select" id="cg-role"><option value="root" selected>Root-CA（自签）</option><option value="sub">Sub-CA（由上级签发）</option><option value="leaf">终端证书</option><option value="csr">签发 CSR（电表内生成密钥）</option></select></div>
+              <div id="cg-usage-wrap" hidden><span class="control-label">终端用途</span><select class="select" id="cg-usage"><option value="sign" selected>数字签名</option><option value="keyAgreement">密钥协商</option><option value="tls">TLS</option></select></div>
+            </div>
+            <div class="control-grid three" id="cg-subject-wrap">
+              <div><span class="control-label">CN</span><input class="mono-input" id="cg-cn" value="Root_CA" spellcheck="false"><div class="field-foot"><span class="hint" id="cg-cn-hint">CA 名称；终端证书会改用 System Title</span></div></div>
+              <div><span class="control-label">O（可选）</span><input class="mono-input" id="cg-o" value="DLMS USER ASSOCIATION" spellcheck="false"></div>
+              <div><span class="control-label">C（可选）</span><input class="mono-input" id="cg-c" value="CH" maxlength="2" spellcheck="false"></div>
+            </div>
+            <div class="control-grid three">
+              <div id="cg-ou-wrap"><span class="control-label">OU（可选）</span><input class="mono-input" id="cg-ou" placeholder="Metering" spellcheck="false"></div>
+              <div id="cg-path-wrap"><span class="control-label">pathLen</span><input class="mono-input" id="cg-path" value="1" inputmode="numeric"></div>
+              <div><span class="control-label">有效期（天）</span><input class="mono-input" id="cg-days" value="3650" inputmode="numeric"><div class="field-foot"><span class="hint" id="cg-days-hint">服务器证书可勾选终身有效</span></div></div>
+            </div>
+            <div class="control-grid two" id="cg-time-wrap">
+              <div><span class="control-label">序列号（可选）</span><input class="mono-input" id="cg-serial" placeholder="留空随机；例 1、42 或 0x01" spellcheck="false"><div class="field-foot"><span class="hint">十进制或 0x 十六进制；RFC 5280 上限 20 字节</span></div></div>
+              <div><span class="control-label">起始日期（可选）</span><input class="mono-input" id="cg-notbefore" type="date"><div class="field-foot"><span class="hint">留空默认当前时间前一天；结束日期 = 起始 + 有效期天数</span></div></div>
+            </div>
+            <div class="field" id="cg-st-wrap" hidden><div class="field-head"><label for="cg-st">System Title <span class="req">8 B / 16 HEX</span></label></div><input class="mono-input" id="cg-st" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false"><div class="field-foot"><span class="hint">终端证书 CN = 这 16 个十六进制字符；不是设备型号</span></div></div>
+            <div class="control-grid two" id="cg-extra-wrap" hidden>
+              <div id="cg-tls-wrap" hidden><span class="control-label">TLS 用途</span><select class="select" id="cg-tls"><option value="server" selected>serverAuth</option><option value="client">clientAuth</option></select></div>
+              <div id="cg-life-wrap" hidden><span class="control-label">有效期</span><div class="seg" id="cg-life"><button class="active" data-cglife="days">按天数</button><button data-cglife="forever">终身有效</button></div></div>
+            </div>
+            <div class="field" id="cg-csr-wrap" hidden><div class="field-head"><label for="cg-csr">CSR（PKCS#10 PEM / DER HEX） <span class="req">由电表生成</span></label><div class="field-tools"><div class="seg" id="cg-csr-format"><button class="active" data-csr="pem">PEM</button><button data-csr="hex">HEX</button></div></div></div><textarea class="mono-input" id="cg-csr" spellcheck="false" placeholder="-----BEGIN CERTIFICATE REQUEST-----&#10;...&#10;-----END CERTIFICATE REQUEST-----"></textarea><div class="field-foot"><span class="hint" id="cg-csr-hint">支持 PEM 或裸 Base64；切到 HEX 可直接粘贴电表返回的 DER 十六进制</span></div></div>
+            <div id="cg-issuer-wrap" hidden>
+              <div class="field"><div class="field-head"><label for="cg-issuer-cert">签发者证书 PEM <span class="req">上级 CA</span></label></div><textarea class="mono-input" id="cg-issuer-cert" spellcheck="false" placeholder="留空则使用本次会话刚生成的 CA"></textarea><div class="field-foot"><span class="hint">Sub/终端证书必须能链到这张证书</span></div></div>
+              <div class="field"><div class="field-head"><label for="cg-issuer-key">签发者私钥 PEM <span class="req">PKCS#8</span></label></div><textarea class="mono-input" id="cg-issuer-key" spellcheck="false" placeholder="CA 私钥只在这里临时使用，不会上传"></textarea><div class="field-foot"><span class="hint">工具会先用它做一次签名/验签，确认与证书公钥匹配</span></div></div>
+            </div>
+            <div class="actions"><button class="btn primary" id="cg-run">生成并签发</button><button class="btn ghost" id="cg-use-ca">使用本次 CA</button><span class="action-note">全部在本地完成</span></div>
+            <div class="hint" id="cg-ca-state">本次会话还没有 CA。</div>
+          </div>
+          <div class="right-stack">
+            <div class="card card-pad">
+              <h3>2 · 输出 <span class="badge" id="cg-out-badge">等待生成</span></h3>
+              <div class="hint" id="cg-meta">生成后显示 CN、keyUsage、SKI/AKI 与导入位置。</div>
+              <div class="field"><div class="field-head"><label for="cg-out-cert">证书 PEM</label><div class="field-tools"><button class="mini-btn" id="cg-copy-cert">复制</button></div></div><textarea class="mono-input" id="cg-out-cert" spellcheck="false" readonly style="min-height:130px"></textarea></div>
+              <div class="field"><div class="field-head"><label for="cg-out-key">私钥 PEM（PKCS#8）</label><div class="field-tools"><button class="mini-btn" id="cg-copy-key">复制</button></div></div><textarea class="mono-input" id="cg-out-key" spellcheck="false" readonly style="min-height:110px"></textarea><div class="field-foot"><span class="badge" style="color:#b42318">只留在本地</span><span class="hint">不要把 CA 私钥导入电表</span></div></div>
+              <div class="field"><div class="field-head"><label for="cg-out-der">证书 DER（HEX，import_certificate 用）</label><div class="field-tools"><button class="mini-btn" id="cg-copy-der">复制</button></div></div><textarea class="mono-input" id="cg-out-der" spellcheck="false" readonly style="min-height:70px"></textarea></div>
+              <div class="field"><div class="field-head"><label for="cg-out-keyhex">公钥 / 私钥 HEX</label><div class="field-tools"><button class="mini-btn" id="cg-copy-keyhex">复制</button></div></div><textarea class="mono-input" id="cg-out-keyhex" spellcheck="false" readonly style="min-height:120px"></textarea><div class="field-foot"><span class="hint">公钥 X‖Y 用于 key_agreement.key_data；04‖X‖Y 是证书里的 SPKI 点；私钥 d 为裸标量</span></div></div>
+              <div class="actions"><button class="btn ghost" id="cg-download">下载证书 PEM</button><button class="btn ghost" id="cg-send-cert">送到证书解析</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ================= 报文解析 ================= -->
       <section class="view" id="view-parse">
         <div class="page-head">
@@ -498,7 +576,7 @@ window.addEventListener("unhandledrejection", function (e) {
             <h1>算法总览</h1>
             <p class="lede">按能力域组织的算法注册表。点“可用”卡片进入对应工作台；“规划中”只保留入口与规范说明。</p>
           </div>
-          <div class="head-meta"><span class="pill pill-ok">9 个可用</span><span class="pill pill-parse">1 个仅解析</span><span class="pill pill-plan">3 个规划</span></div>
+          <div class="head-meta"><span class="pill pill-ok">10 个可用</span><span class="pill pill-parse">1 个仅解析</span><span class="pill pill-plan">2 个规划</span></div>
         </div>
         <div class="filters" id="registry-filters">
           <button class="filter active" data-cat="all">全部</button><button class="filter" data-cat="protect">报文保护</button><button class="filter" data-cat="key">密钥</button><button class="filter" data-cat="auth">认证</button><button class="filter" data-cat="pki">签名 / 证书</button><button class="filter" data-cat="check">校验</button><button class="filter" data-cat="plan">规划中</button>
@@ -511,12 +589,12 @@ window.addEventListener("unhandledrejection", function (e) {
           <button class="algo-card" data-view="hls" data-cat="auth"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-check"/></svg></span><span class="pill pill-ok">可用</span></div><h3>HLS 双向认证</h3><p>mechanism 3/4/5/6/7，客户端/服务端双向质询-应答。</p><div class="algo-io"><div><b>输入</b> 质询值 · secret / EK/AK / 私钥</div><div><b>输出</b> f(StoC) / f(CtoS)</div></div><div class="algo-spec">§9.2.7.4 Tables 50–52</div></button>
           <button class="algo-card" data-view="sign" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-pen"/></svg></span><span class="pill pill-ok">可用</span></div><h3>ECDSA</h3><p>签名/验签；DLMS plain R‖S 与证书 DER 互转。</p><div class="algo-io"><div><b>输入</b> d / Q · message · hash</div><div><b>输出</b> 64 / 96 B 签名</div></div><div class="algo-spec">§9.2.3.4.5</div></button>
           <button class="algo-card" data-view="cert" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-ok">可用</span></div><h3>X.509 证书</h3><p>解析、验签、链式校验、公钥提取。</p><div class="algo-io"><div><b>输入</b> PEM / DER · issuer</div><div><b>输出</b> 字段 · 校验结果 · 公钥</div></div><div class="algo-spec">RFC 5280 · §9.2.6</div></button>
+          <button class="algo-card" data-view="certgen" data-cat="pki"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-ok">可用</span></div><h3>证书签发</h3><p>本地生成 Root / Sub / 终端证书，扩展按 DLMS profile 配置。</p><div class="algo-io"><div><b>输入</b> 角色 · 套件 · 主体</div><div><b>输出</b> PEM · DER · SKI/AKI</div></div><div class="algo-spec">§9.2.6 · Table 41</div></button>
           <button class="algo-card" data-view="hash" data-cat="check"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-finger"/></svg></span><span class="pill pill-ok">可用</span></div><h3>SHA / MD5</h3><p>SHA-256/384/512、SHA-1、MD5、HMAC。</p><div class="algo-io"><div><b>输入</b> message / file</div><div><b>输出</b> digest</div></div><div class="algo-spec">§9.2.3.2 · HLS-3/4/6</div></button>
           <button class="algo-card" data-view="hash" data-cat="check"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-finger"/></svg></span><span class="pill pill-ok">可用</span></div><h3>CRC / FCS</h3><p>CRC-16/X.25（HDLC FCS）、CCITT、ARC、CRC-32。</p><div class="algo-io"><div><b>输入</b> bytes · 参数</div><div><b>输出</b> 数值 · 线上字节</div></div><div class="algo-spec">IEC 62056-46</div></button>
           <button class="algo-card" data-view="parse" data-cat="protect"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-code"/></svg></span><span class="pill pill-parse">仅解析</span></div><h3>general-ciphering · DD</h3><p>v1 解析 tx / 双 ST / key-info / ciphered-content；构建放 v2。</p><div class="algo-io"><div><b>输入</b> DD 报文</div><div><b>输出</b> 字段树 · 内层 APDU</div></div><div class="algo-spec">§9.5 · Table 49</div></button>
           <button class="algo-card planned" data-cat="plan" data-plan="V.44 只省带宽、不是密码学；v1 只保留说明入口。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-grid"/></svg></span><span class="pill pill-plan">规划中</span></div><h3>V.44 压缩</h3><p>Suite 1/2 的 SC bit7；与加解密链路耦合较深。</p><div class="algo-io"><div><b>输入</b> 压缩数据</div><div><b>输出</b> 原始数据</div></div><div class="algo-spec">§9.2.3.6</div></button>
           <button class="algo-card planned" data-cat="plan" data-plan="Suite 3–15 在 Ed.11 中保留，可能是后量子方向；不猜算法。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-grid"/></svg></span><span class="pill pill-plan">保留</span></div><h3>Security Suite 3–15</h3><p>规范保留值，尚无 Ed.11 算法定义。</p><div class="algo-io"><div><b>输入</b> —</div><div><b>输出</b> —</div></div><div class="algo-spec">Table 27</div></button>
-          <button class="algo-card planned" data-cat="plan" data-plan="证书签发/CSR 需要额外 ASN.1 编码器，放 v2。"><div class="algo-top"><span class="algo-ico"><svg class="ico"><use href="#i-badge"/></svg></span><span class="pill pill-plan">规划中</span></div><h3>证书签发 / CSR</h3><p>自签名测试证书、CSR 生成；v1 不做。</p><div class="algo-io"><div><b>输入</b> 主体 · 公钥 · 私钥</div><div><b>输出</b> DER 证书 / CSR</div></div><div class="algo-spec">RFC 5280</div></button>
         </div>
       </section>
 
@@ -552,6 +630,7 @@ window.addEventListener("unhandledrejection", function (e) {
 <script src="assets/js/core/crc.js"></script>
 <script src="assets/js/core/ec.js"></script>
 <script src="assets/js/core/x509.js"></script>
+<script src="assets/js/core/certgen.js"></script>
 <script src="assets/js/core/dlms.js"></script>
 <script src="assets/js/vectors.js"></script>
 <script src="assets/js/ui/components.js"></script>

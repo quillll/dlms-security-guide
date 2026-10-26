@@ -23,13 +23,14 @@ python -m http.server 8765 --bind 127.0.0.1
 | HLS 双向认证 | mechanism 3/4/5/6/7，客户端/服务端方向；公式与规范向量对比 | 可用 |
 | 密钥工具 | AES-KW（RFC 3394）、ECDH + Concatenation KDF、KDF 单算、随机密钥 | 可用 |
 | 哈希与校验 | SHA-256/384/512、SHA-1、MD5、HMAC、CRC-16/X.25（HDLC FCS）、CRC-32 | 可用 |
-| 数字签名 | ECDSA P-256/P-384；raw `R‖S` ↔ DER；PKCS#8 / JWK / 原始私钥 d | 可用 |
+| 数字签名 | ECDSA P-256/P-384；raw `R‖S` ↔ DER；PKCS#8 / JWK / 原始私钥 d；消息支持 ASCII / HEX 两种输入 | 可用 |
 | 证书 | X.509 解析、验签、链式校验、公钥提取（X‖Y / 04‖X‖Y / SPKI / JWK） | 可用 |
+| 证书签发 | 生成 Root-CA / Sub-CA / 终端签名 / 密钥协商 / TLS 证书；解析并签发 PKCS#10 CSR（私钥不出设备） | 可用 |
 | 报文解析 | HDLC / wrapper / 原始 APDU；FCS 校验；SC/IC/密文/tag 字段拆分；可选内联解密 | 可用 |
 | 算法总览 | 算法注册表与规范出处；规划中入口灰显 | 可用 |
 | 测试向量 | Table 48 / 51 / 52、Annex C.1、AES-KW、CRC、SHA/MD5、证书链 | 可用（13/13） |
 
-**未实现、仅保留入口**：V.44 压缩、general-ciphering（DD）构建、general-signing（DF）构建、证书签发/CSR、CRL/OCSP、信任锚判断、Suite 3–15。
+**未实现、仅保留入口**：V.44 压缩、general-ciphering（DD）构建、general-signing（DF）构建、CRL/OCSP、信任锚判断、Suite 3–15。
 
 ## 术语
 
@@ -45,7 +46,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ```bash
 node tests/run-tests.js
-# 期望：44 passed, 0 failed
+# 期望：48 passed, 0 failed
 ```
 
 浏览器 UI 冒烟（需要本地 HTTP 服务 + 带远程调试端口的 Edge）：
@@ -76,11 +77,11 @@ dlms-tool/
 ├─ assets/
 │  ├─ css/app.css
 │  └─ js/
-│     ├─ core/                 # bytes / gcm / hash / aes-kw / kdf / ec / x509 / crc / dlms
+│     ├─ core/                 # bytes / gcm / hash / aes-kw / kdf / ec / x509 / certgen / crc / dlms
 │     ├─ ui/                   # components.js / app.js
 │     └─ vectors.js            # 规范向量 + 示例证书链
 ├─ tests/
-│  ├─ run-tests.js             # 核心算法 44 项
+│  ├─ run-tests.js             # 核心算法 48 项
 │  ├─ ui-smoke.js              # UI 冒烟 21 项（CDP）
 │  ├─ screenshots.js           # 评审截图脚本（可选）
 │  └─ fixtures/                # OpenSSL 生成的测试证书

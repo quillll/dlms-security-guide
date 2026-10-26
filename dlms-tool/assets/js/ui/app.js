@@ -7,6 +7,7 @@
   var DLMS = globalThis.DLMS;
   var B = DLMS.Bytes, H = DLMS.Hash, G = DLMS.GCM, KW = DLMS.AESKW;
   var KDF = DLMS.KDF, CRC = DLMS.CRC, EC = DLMS.EC, X509 = DLMS.X509;
+  var CG = DLMS.CertGen;
   var D = DLMS.DLMS, V = DLMS.Vectors, UI = DLMS.UI;
   var $ = UI.$, $$ = UI.$$;
   var toast = UI.toast;
@@ -19,6 +20,7 @@
     hash: { title: "哈希与校验" },
     sign: { title: "数字签名" },
     cert: { title: "X.509 证书" },
+    certgen: { title: "证书签发" },
     parse: { title: "报文解析" },
     registry: { title: "算法总览" },
     vectors: { title: "测试向量" }
@@ -651,6 +653,54 @@
         toast("已生成 " + curve + " 密钥对");
       } catch (e) { toast(e.message); }
     });
+    $("#pk-run").addEventListener("click", pkRun);
+    $("#pk-sample").addEventListener("click", async function () {
+      try {
+        var curve = $("#pk-curve").value;
+        var kp = await EC.generateKeyPair(curve === "auto" ? "P-256" : curve, "ECDSA");
+        $("#pk-input").value = kp.pkcs8Pem;
+        $("#pk-status").textContent = "已载入示例";
+      } catch (e) { toast(e.message); }
+    });
+    $("#pk-copy-pub").addEventListener("click", function () {
+      if (!UI.copyText($("#pk-out-pub").value)) return;
+      toast("公钥 HEX 已复制");
+    });
+    $("#pk-copy-priv").addEventListener("click", function () {
+      if (!UI.copyText($("#pk-out-priv").value)) return;
+      toast("私钥 HEX 已复制");
+    });
+  }
+
+  async function pkRun() {
+    var input = $("#pk-input").value.trim();
+    if (!input) {
+      toast("请先粘贴私钥或公钥");
+      $("#pk-input").focus();
+      return;
+    }
+    var btn = $("#pk-run");
+    busy(btn, true);
+    try {
+      var r = await EC.inspectKey({ data: input, curve: $("#pk-curve").value });
+      $("#pk-out-pub").value = [
+        "X‖Y (" + r.publicRawXY.length + " B): " + B.bytesToHexCompact(r.publicRawXY),
+        "04‖X‖Y (" + r.publicRaw.length + " B): " + B.bytesToHexCompact(r.publicRaw)
+      ].join("\n");
+      $("#pk-out-priv").value = r.privateRaw
+        ? "d (" + r.privateRaw.length + " B): " + B.bytesToHexCompact(r.privateRaw)
+        : "（输入的是公钥，无法反推私钥）";
+      $("#pk-status").textContent = r.kind === "private" ? "私钥 → 公钥" : "公钥解析";
+      $("#pk-out-meta").textContent = r.curve + " · " + (r.kind === "private"
+        ? "私钥 " + r.privateRaw.length + " B / 公钥 " + r.publicRawXY.length + " B"
+        : "公钥 " + r.publicRawXY.length + " B");
+      toast("已解析");
+    } catch (e) {
+      $("#pk-status").textContent = "失败";
+      toast(e.message || String(e));
+    } finally {
+      busy(btn, false);
+    }
   }
 
   async function kwRun() {
@@ -872,6 +922,27 @@
      数字签名
      ============================================================ */
   function initSign() {
+    var msgMode = "ascii";
+    $$("#sign-msg-format button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var next = b.getAttribute("data-sfmt");
+        if (next === msgMode) return;
+        var input = $("#sign-msg");
+        if (next === "hex") {
+          input.value = B.bytesToHex(B.utf8ToBytes(input.value));
+          $("#sign-msg-hint").textContent = "HEX 按字节解析；支持空格、冒号、0x 前缀";
+        } else {
+          try {
+            var bytes = B.hexToBytes(input.value);
+            if (!B.isProbablyPrintable(bytes)) { toast("消息含不可打印字节，保留 HEX 模式"); return; }
+            input.value = B.bytesToUtf8(bytes);
+            $("#sign-msg-hint").textContent = "ASCII/UTF-8 按字节编码；切到 HEX 可签二进制质询";
+          } catch (e) { toast("当前内容不是合法 HEX，保留原样"); }
+        }
+        msgMode = next;
+        UI.setSegment($("#sign-msg-format"), "data-sfmt", next);
+      });
+    });
     $$("#sign-mode button").forEach(function (b) {
       b.addEventListener("click", function () {
         var mode = b.getAttribute("data-sign");
@@ -917,7 +988,8 @@
       var mode = UI.activeButton($("#sign-mode")).getAttribute("data-sign");
       var curve = $("#sign-curve").value;
       var hash = $("#sign-hash").value;
-      var msg = B.utf8ToBytes($("#sign-msg").value);
+      var msgFmt = UI.activeButton($("#sign-msg-format")).getAttribute("data-sfmt");
+      var msg = msgFmt === "hex" ? B.hexToBytes($("#sign-msg").value) : B.utf8ToBytes($("#sign-msg").value);
       if (mode === "sign") {
         var privText = $("#sign-priv").value.trim();
         if (!privText) throw { field: "sign-priv", message: "请填写私钥" };
@@ -1098,6 +1170,288 @@
         $("#cert-dlms-status").innerHTML = ok ? '<span class="ok-text">✓ 验签通过</span>' : '<span class="bad-text">✗ 验签失败</span>';
       } catch (e) { $("#cert-dlms-status").innerHTML = '<span class="bad-text">✗ ' + UI.esc(e.message) + "</span>"; }
     });
+  }
+
+  /* ============================================================
+     证书签发
+     ============================================================ */
+  var lastCA = null;
+
+  function normalizeSystemTitle(text) {
+    var s = String(text || "").replace(/0x/gi, "").replace(/[\s:_,\-]/g, "");
+    if (!/^[0-9A-Fa-f]{16}$/.test(s)) throw new Error("System Title 必须是 16 个十六进制字符（8 字节）");
+    return s.toUpperCase();
+  }
+
+  function initCertgen() {
+    var role = $("#cg-role");
+    var usage = $("#cg-usage");
+
+    function syncForm() {
+      var isCSR = role.value === "csr";
+      var isLeaf = role.value === "leaf" || isCSR;
+      var isCA = !isLeaf;
+      $("#cg-usage-wrap").hidden = !isLeaf;
+      $("#cg-st-wrap").hidden = role.value !== "leaf";
+      $("#cg-subject-wrap").hidden = isCSR;
+      $("#cg-ou-wrap").hidden = isCSR;
+      $("#cg-csr-wrap").hidden = !isCSR;
+      $("#cg-extra-wrap").hidden = !isLeaf;
+      $("#cg-path-wrap").hidden = !isCA;
+      $("#cg-issuer-wrap").hidden = role.value === "root";
+      $("#cg-cn").disabled = role.value === "leaf";
+      $("#cg-tls-wrap").hidden = !(isLeaf && usage.value === "tls");
+      $("#cg-life-wrap").hidden = !(isLeaf && usage.value === "sign");
+      if (isCA) {
+        $("#cg-cn").value = role.value === "root" ? "Root_CA" : "Sub_CA";
+        $("#cg-path").value = role.value === "root" ? "1" : "0";
+        $("#cg-cn-hint").textContent = role.value === "root"
+          ? "自签 CA 名称，通常 Root_CA"
+          : "Sub-CA 名称必须以 CA 结尾";
+      } else {
+        $("#cg-cn-hint").textContent = isCSR ? "CN 由 CSR 提供" : "终端证书 CN 自动取 System Title";
+      }
+      if (!lastCA) {
+        $("#cg-ca-state").textContent = "本次会话还没有 CA；先生成 Root-CA。";
+      }
+    }
+
+    role.addEventListener("change", syncForm);
+    usage.addEventListener("change", syncForm);
+
+    function csrDerFromText(text, mode) {
+      var t = String(text || "").trim();
+      if (!t) throw new Error("CSR 为空");
+      if (mode === "hex") return B.hexToBytes(t);
+      if (/-----BEGIN/.test(t)) return X509.parsePem(t)[0].der;
+      var b64 = t.replace(/[^A-Za-z0-9+/=]/g, "");
+      if (!b64) throw new Error("CSR 内容为空");
+      return B.base64ToBytes(b64);
+    }
+
+    $$("#cg-csr-format button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var next = b.getAttribute("data-csr");
+        if (UI.activeButton($("#cg-csr-format")).getAttribute("data-csr") === next) return;
+        var input = $("#cg-csr");
+        var text = input.value.trim();
+        try {
+          if (next === "hex") {
+            if (text) input.value = B.bytesToHex(csrDerFromText(text, "pem"));
+            $("#cg-csr-hint").textContent = "HEX 按字节解析；支持空格、冒号、0x 前缀";
+          } else {
+            if (text) input.value = X509.toPem(csrDerFromText(text, "hex"), "CERTIFICATE REQUEST");
+            $("#cg-csr-hint").textContent = "支持 PEM 或裸 Base64；切到 HEX 可直接粘贴电表返回的 DER 十六进制";
+          }
+          UI.setSegment($("#cg-csr-format"), "data-csr", next);
+        } catch (e) {
+          toast("当前内容无法转换：" + (e.message || e));
+        }
+      });
+    });
+
+    function parseSerial(text) {
+      var t = String(text).trim();
+      var hex;
+      if (/^0x/i.test(t)) {
+        hex = t.slice(2).replace(/[^0-9A-Fa-f]/g, "");
+        if (!hex) throw new Error("序列号 0x 后缺少十六进制数字");
+      } else if (/[A-Fa-f]/.test(t)) {
+        hex = t.replace(/[^0-9A-Fa-f]/g, "");
+      } else {
+        if (!/^\d+$/.test(t)) throw new Error("序列号需为十进制整数或 0x 开头的十六进制");
+        var n = Number(t);
+        if (!Number.isSafeInteger(n) || n <= 0) throw new Error("序列号必须为正整数");
+        hex = n.toString(16);
+      }
+      if (hex.length % 2) hex = "0" + hex;
+      var bytes = B.hexToBytes(hex);
+      if (bytes.length > 20) throw new Error("序列号超过 20 字节（RFC 5280 上限）");
+      return bytes;
+    }
+
+    function growTextarea(el) {
+      if (!el || el.offsetParent === null) return;
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight + 2, 640) + "px";
+    }
+    $$("#cg-life button").forEach(function (b) {
+      b.addEventListener("click", function () { UI.setSegment($("#cg-life"), "data-cglife", b.getAttribute("data-cglife")); });
+    });
+
+    $("#cg-use-ca").addEventListener("click", function () {
+      if (!lastCA) { toast("先生成 Root-CA 或 Sub-CA"); return; }
+      $("#cg-issuer-cert").value = lastCA.certPem;
+      $("#cg-issuer-key").value = lastCA.keyPem;
+      toast("已填入本次 CA 的证书与私钥");
+    });
+
+    function copyOut(id, label) {
+      var v = $(id).value;
+      if (!v) { toast("还没有输出"); return; }
+      UI.copyText(v);
+      toast(label + "已复制");
+    }
+    $("#cg-copy-cert").addEventListener("click", function () { copyOut("#cg-out-cert", "证书 PEM"); });
+    $("#cg-copy-key").addEventListener("click", function () { copyOut("#cg-out-key", "私钥 PEM"); });
+    $("#cg-copy-der").addEventListener("click", function () { copyOut("#cg-out-der", "证书 DER"); });
+    $("#cg-copy-keyhex").addEventListener("click", function () { copyOut("#cg-out-keyhex", "公钥/私钥 HEX"); });
+
+    $("#cg-download").addEventListener("click", function () {
+      var pem = $("#cg-out-cert").value;
+      if (!pem) { toast("先生成证书"); return; }
+      var cn = (lastOutput && lastOutput.cert.subject.parts.find(function (p) { return p.name === "CN"; }) || {}).value || "certificate";
+      UI.download("dlms-" + cn.replace(/[^A-Za-z0-9_-]/g, "_") + ".pem", pem);
+    });
+
+    $("#cg-send-cert").addEventListener("click", function () {
+      var pem = $("#cg-out-cert").value;
+      if (!pem) { toast("先生成证书"); return; }
+      $("#cert-input").value = pem;
+      go("cert");
+      $("#cert-parse").click();
+    });
+
+    $("#cg-run").addEventListener("click", cgRun);
+
+    var lastOutput = null;
+
+    async function cgRun() {
+      var btn = $("#cg-run");
+      busy(btn, true);
+      try {
+        var roleValue = role.value;
+        var suite = $("#cg-suite").value;
+        var curve = suite === "2" ? "P-384" : "P-256";
+        var isCSR = roleValue === "csr";
+        var isCA = roleValue === "root" || roleValue === "sub";
+        var subject = isCSR ? null : {
+          CN: roleValue === "leaf" ? normalizeSystemTitle($("#cg-st").value) : $("#cg-cn").value.trim(),
+          O: $("#cg-o").value.trim(),
+          OU: $("#cg-ou").value.trim(),
+          C: $("#cg-c").value.trim()
+        };
+        if (!isCSR && !subject.CN) throw new Error("请填写 CN");
+        if (roleValue === "sub" && !/CA$/.test(subject.CN)) throw new Error("Sub-CA 的 CN 必须以 CA 结尾");
+        if (!isCA && usage.value === "tls" && !$("#cg-tls").value) throw new Error("请选择 TLS 用途");
+
+        var opts = {
+          role: roleValue,
+          curve: curve,
+          subject: subject,
+          usageType: isCA ? "sign" : usage.value,
+          tlsRole: $("#cg-tls").value,
+          validityDays: parseInt($("#cg-days").value, 10) || 3650,
+          pathLen: isCA ? parseInt($("#cg-path").value, 10) : null
+        };
+
+        if (!isCA && usage.value === "sign") {
+          opts.lifetime = UI.activeButton($("#cg-life")).getAttribute("data-cglife") === "forever";
+        }
+
+        var serialText = $("#cg-serial").value.trim();
+        if (serialText) opts.serial = parseSerial(serialText);
+        var startText = $("#cg-notbefore").value.trim();
+        if (startText) {
+          var dparts = startText.split("-").map(function (x) { return parseInt(x, 10); });
+          var start = new Date(Date.UTC(dparts[0], dparts[1] - 1, dparts[2], 0, 0, 0));
+          if (dparts.length < 3 || isNaN(start.getTime())) throw new Error("起始日期格式无效");
+          if (!opts.lifetime) {
+            if (opts.validityDays <= 0) throw new Error("有效期天数必须大于 0");
+            opts.notAfter = new Date(start.getTime() + opts.validityDays * 86400000);
+          }
+          opts.notBefore = start;
+        }
+
+        if (roleValue !== "root") {
+          var issuerPem = $("#cg-issuer-cert").value.trim();
+          var issuerKeyPem = $("#cg-issuer-key").value.trim();
+          if (!issuerPem && lastCA) issuerPem = lastCA.certPem;
+          if (!issuerKeyPem && lastCA) issuerKeyPem = lastCA.keyPem;
+          if (!issuerPem || !issuerKeyPem) throw new Error("请粘贴签发者证书与私钥，或先生成 CA");
+          var issuerCert = X509.parseCertificate(X509.parsePem(issuerPem)[0].der);
+          var issuerCurve = issuerCert.spki.curveName;
+          if (!CG.HASH[issuerCurve]) throw new Error("签发者证书曲线不支持：" + issuerCurve);
+          var issuerKey = await CG.importIssuerKey(issuerKeyPem, issuerCurve);
+          var probe = new Uint8Array([0x44, 0x4C, 0x4D, 0x53]);
+          var probeSig = await EC.sign({ privateKey: issuerKey, hash: CG.HASH[issuerCurve], message: probe });
+          var issuerPub = await EC.importPublicKey({ format: "raw", data: issuerCert.spki.publicKeyBytes, curve: issuerCurve, usage: "ECDSA" });
+          var matched = await EC.verify({ publicKey: issuerPub, hash: CG.HASH[issuerCurve], message: probe, signature: probeSig, curve: issuerCurve });
+          if (!matched) throw new Error("签发者私钥与证书公钥不匹配");
+          opts.issuerCert = issuerCert;
+          opts.issuerPrivateKey = issuerKey;
+        }
+
+        var out;
+        var displayCN = subject ? subject.CN : "";
+        if (isCSR) {
+          var csrText = $("#cg-csr").value.trim();
+          if (!csrText) throw new Error("请粘贴电表生成的 CSR（PEM / 裸 Base64 / DER HEX）");
+          var csrFmt = UI.activeButton($("#cg-csr-format")).getAttribute("data-csr");
+          var csrDer = csrDerFromText(csrText, csrFmt);
+          var parsedCsr = CG.parseCsr(csrDer);
+          var cnPart = parsedCsr.subject.parts.find(function (p) { return p.name === "CN"; });
+          if (!cnPart || !/^[0-9A-Fa-f]{16}$/.test(cnPart.value)) {
+            throw new Error("CSR 的 CN 不是 16 位 System Title，不能按 DLMS 终端证书签发");
+          }
+          displayCN = cnPart.value.toUpperCase();
+          out = await CG.signCsr({
+            csrDer: csrDer,
+            issuerCert: opts.issuerCert,
+            issuerPrivateKey: opts.issuerPrivateKey,
+            usageType: opts.usageType,
+            tlsRole: opts.tlsRole,
+            validityDays: opts.validityDays,
+            lifetime: opts.lifetime,
+            serial: opts.serial,
+            notBefore: opts.notBefore,
+            notAfter: opts.notAfter
+          });
+        } else {
+          out = await CG.create(opts);
+        }
+        lastOutput = out;
+        $("#cg-out-cert").value = out.pem;
+        $("#cg-out-key").value = out.privateKeyPem || "";
+        $("#cg-out-key").placeholder = isCSR ? "CSR 模式：私钥在电表内，工具不接触" : "";
+        $("#cg-out-der").value = B.bytesToHex(out.der);
+        var pubRaw = out.publicRaw || new Uint8Array(0);
+        var pubXY = pubRaw.length ? pubRaw.slice(1) : new Uint8Array(0);
+        var keyLines = [];
+        if (pubXY.length) keyLines.push("公钥 X‖Y (" + pubXY.length + " B): " + B.bytesToHexCompact(pubXY));
+        if (pubRaw.length) keyLines.push("公钥 04‖X‖Y (" + pubRaw.length + " B): " + B.bytesToHexCompact(pubRaw));
+        if (out.privateKeyRaw) keyLines.push("私钥 d (" + out.privateKeyRaw.length + " B): " + B.bytesToHexCompact(out.privateKeyRaw));
+        else keyLines.push("私钥 d: （CSR 模式，私钥在设备内，不导出）");
+        $("#cg-out-keyhex").value = keyLines.join("\n");
+        ["cg-out-cert", "cg-out-key", "cg-out-der", "cg-out-keyhex"].forEach(growTextarea);
+        $("#cg-out-badge").textContent = isCSR ? "已签发 CSR" : "已生成";
+
+        if (isCA) {
+          lastCA = { certPem: out.pem, keyPem: out.privateKeyPem, der: out.der, cn: subject.CN, curve: curve };
+          $("#cg-ca-state").textContent = "本次 CA：" + subject.CN + " · " + curve + " · SKI " + out.ski;
+        }
+
+        var ku = out.cert.extensions["2.5.29.15"].value.usages.join(", ");
+        var where = roleValue === "root" || roleValue === "sub"
+          ? "电表 + 客户端，作为信任锚"
+          : usage.value === "sign" ? "server / client 的签名证书槽位"
+            : usage.value === "keyAgreement" ? "server / client 的密钥协商证书槽位"
+              : "TLS 证书槽位";
+        $("#cg-meta").innerHTML = "<b>" + UI.esc(displayCN) + "</b> · " + UI.esc(out.curve) + " 密钥 · " + UI.esc(out.signatureAlgorithm) +
+          "<br>Serial: " + UI.esc(out.serial || "—") +
+          "<br>keyUsage: " + UI.esc(ku) +
+          "<br>SKI: " + UI.esc(out.ski) +
+          "<br>AKI: " + UI.esc(out.aki || "（自签，无）") +
+          "<br>导入位置: " + UI.esc(where) + (isCSR ? "；私钥仍在电表内" : "；私钥留在本端");
+        toast(isCSR ? "CSR 已签发" : "证书已生成");
+      } catch (e) {
+        toast(e.message || String(e));
+      } finally {
+        busy(btn, false);
+      }
+    }
+
+    syncForm();
   }
 
   /* ============================================================
@@ -1302,13 +1656,13 @@
   function initKeyboard() {
     document.addEventListener("keydown", function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", parse: "parse-run" };
+        var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", certgen: "cg-run", parse: "parse-run" };
         var id = map[currentView];
         if (id) { e.preventDefault(); var b = document.getElementById(id); if (b) b.click(); }
       }
     });
     $("#mobile-run").addEventListener("click", function () {
-      var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", parse: "parse-run" };
+      var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", certgen: "cg-run", parse: "parse-run" };
       var id = map[currentView];
       if (id) { var b = document.getElementById(id); if (b) b.click(); }
     });
@@ -1329,6 +1683,7 @@
   initHash();
   initSign();
   initCert();
+  initCertgen();
   initParse();
   initRegistry();
   initVectors();

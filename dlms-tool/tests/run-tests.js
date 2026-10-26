@@ -12,6 +12,7 @@ require("../assets/js/core/kdf.js");
 require("../assets/js/core/crc.js");
 require("../assets/js/core/ec.js");
 require("../assets/js/core/x509.js");
+require("../assets/js/core/certgen.js");
 require("../assets/js/core/dlms.js");
 
 const fs = require("fs");
@@ -24,6 +25,7 @@ const KDF = global.DLMS.KDF;
 const CRC = global.DLMS.CRC;
 const EC = global.DLMS.EC;
 const X509 = global.DLMS.X509;
+const CG = global.DLMS.CertGen;
 const D = global.DLMS.DLMS;
 
 let passed = 0;
@@ -426,6 +428,68 @@ function eqHex(actual, expected, label) {
     assert.strictEqual(p.lengthOk, true);
     eqHex(p.content, "C0010000080000010000FF0200");
     assert.strictEqual(p.signature.length, 64);
+  });
+
+  console.log("certgen");
+  await test("签发 Root-CA 并检查 DLMS 约束", async () => {
+    const root = await CG.create({
+      role: "root", curve: "P-384",
+      subject: { C: "CH", O: "DLMS USER ASSOCIATION", CN: "Root_CA" }
+    });
+    assert.strictEqual(root.cert.version, 3);
+    assert.strictEqual(root.cert.subject.text, "C=CH, O=DLMS USER ASSOCIATION, CN=Root_CA");
+    assert.strictEqual(root.cert.extensions["2.5.29.19"].value.ca, true);
+    assert.strictEqual(root.cert.extensions["2.5.29.19"].value.pathLen, 1);
+    assert.ok(root.cert.extensions["2.5.29.15"].value.usages.includes("keyCertSign"));
+    assert.ok(root.cert.extensions["2.5.29.15"].value.usages.includes("cRLSign"));
+    assert.strictEqual(root.signatureAlgorithm, "ecdsa-with-SHA384");
+    assert.strictEqual(root.ski.length, 40);
+  });
+  await test("Sub-CA + 终端证书链验签", async () => {
+    const root = await CG.create({ role: "root", curve: "P-384", subject: { CN: "Root_CA" } });
+    const rootKey = await CG.importIssuerKey(root.privateKeyPem, "P-384");
+    const sub = await CG.create({
+      role: "sub", curve: "P-384", subject: { CN: "Sub_CA" },
+      issuerCert: root.cert, issuerPrivateKey: rootKey, pathLen: 0
+    });
+    const subKey = await CG.importIssuerKey(sub.privateKeyPem, "P-384");
+    const leaf = await CG.create({
+      role: "leaf", curve: "P-384", subject: { CN: "4D4D4D0000BC614E" },
+      issuerCert: sub.cert, issuerPrivateKey: subKey, usageType: "sign"
+    });
+    assert.strictEqual(leaf.aki, sub.ski);
+    assert.deepStrictEqual(leaf.cert.extensions["2.5.29.15"].value.usages, ["digitalSignature"]);
+    assert.strictEqual(leaf.cert.extensions["2.5.29.19"], undefined);
+    const chain = await X509.verifyChain([leaf.cert, sub.cert, root.cert]);
+    assert.strictEqual(chain.ok, true, chain.reason);
+  });
+  await test("签发 CSR 且私钥不离开设备", async () => {
+    const root = await CG.create({ role: "root", curve: "P-384", subject: { CN: "Root_CA" } });
+    const key = await CG.importIssuerKey(root.privateKeyPem, "P-384");
+    const csr = await CG.createCsr({ curve: "P-384", subject: { CN: "4D4D4D0000BC614E" } });
+    const leaf = await CG.signCsr({
+      csrDer: csr.der, issuerCert: root.cert, issuerPrivateKey: key, usageType: "sign"
+    });
+    assert.strictEqual(leaf.privateKeyPem, null);
+    assert.strictEqual(leaf.cert.subject.text, "CN=4D4D4D0000BC614E");
+    assert.strictEqual(B.bytesToHex(leaf.cert.spki.publicKeyBytes), B.bytesToHex(csr.publicRaw));
+    const chain = await X509.verifyChain([leaf.cert, root.cert]);
+    assert.strictEqual(chain.ok, true, chain.reason);
+  });
+  await test("密钥协商证书与 TLS 证书用途", async () => {
+    const root = await CG.create({ role: "root", curve: "P-256", subject: { CN: "Root_CA" } });
+    const key = await CG.importIssuerKey(root.privateKeyPem, "P-256");
+    const ka = await CG.create({
+      role: "leaf", curve: "P-256", subject: { CN: "4D4D4D0000000001" },
+      issuerCert: root.cert, issuerPrivateKey: key, usageType: "keyAgreement"
+    });
+    assert.deepStrictEqual(ka.cert.extensions["2.5.29.15"].value.usages, ["keyAgreement"]);
+    const tls = await CG.create({
+      role: "leaf", curve: "P-256", subject: { CN: "4D4D4D0000000001" },
+      issuerCert: root.cert, issuerPrivateKey: key, usageType: "tls", tlsRole: "server"
+    });
+    assert.deepStrictEqual(tls.cert.extensions["2.5.29.15"].value.usages, ["digitalSignature", "keyAgreement"]);
+    assert.ok(tls.cert.extensions["2.5.29.37"].value.usages.includes("1.3.6.1.5.5.7.3.1"));
   });
 
   console.log("");

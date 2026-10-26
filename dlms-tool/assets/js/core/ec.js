@@ -397,6 +397,100 @@
     return String(curveName).toUpperCase() === "P-384" ? "SHA-384" : "SHA-256";
   }
 
+  async function inspectKey(opts) {
+    var text = typeof opts.data === "string" ? opts.data.trim() : "";
+    var wantCurve = !opts.curve || opts.curve === "auto" ? "" : opts.curve;
+    var fmt;
+    if (/-----BEGIN [^-]*PRIVATE KEY-----/.test(text)) fmt = "priv-pem";
+    else if (/-----BEGIN [^-]*PUBLIC KEY-----/.test(text)) fmt = "pub-pem";
+    else if (text.charAt(0) === "{") fmt = "jwk";
+    else fmt = "hex";
+
+    function result(kind, curveName, d, xy) {
+      return {
+        kind: kind,
+        curve: curveName,
+        privateRaw: d,
+        publicRawXY: xy,
+        publicRaw: B.concat(new Uint8Array([0x04]), xy)
+      };
+    }
+
+    if (fmt === "priv-pem") {
+      var der = pemToDer(text);
+      var candidates = wantCurve ? [wantCurve] : ["P-256", "P-384"];
+      var lastErr;
+      for (var i = 0; i < candidates.length; i++) {
+        try {
+          var key = await subtle().importKey("pkcs8", der, { name: "ECDSA", namedCurve: candidates[i] }, true, ["sign"]);
+          var jwk = await subtle().exportKey("jwk", key);
+          var d = B.base64UrlToBytes(jwk.d);
+          var xy = B.concat(B.base64UrlToBytes(jwk.x), B.base64UrlToBytes(jwk.y));
+          var derived = derivePublicKey(d, candidates[i]);
+          if (B.bytesToHexCompact(derived.x) !== B.bytesToHexCompact(xy.slice(0, xy.length / 2))) {
+            throw new Error("私钥与导出公钥不一致");
+          }
+          return result("private", candidates[i], d, xy);
+        } catch (e) { lastErr = e; }
+      }
+      throw new Error("无法解析该私钥 PEM：" + (lastErr && lastErr.message ? lastErr.message : "不是 PKCS#8 或曲线不匹配"));
+    }
+
+    if (fmt === "pub-pem") {
+      var pubDer = pemToDer(text);
+      var pubs = wantCurve ? [wantCurve] : ["P-256", "P-384"];
+      var pubErr;
+      for (var j = 0; j < pubs.length; j++) {
+        try {
+          var pk = await subtle().importKey("spki", pubDer, { name: "ECDSA", namedCurve: pubs[j] }, true, ["verify"]);
+          var pjwk = await subtle().exportKey("jwk", pk);
+          var pxy = B.concat(B.base64UrlToBytes(pjwk.x), B.base64UrlToBytes(pjwk.y));
+          return result("public", pubs[j], null, pxy);
+        } catch (e2) { pubErr = e2; }
+      }
+      throw new Error("无法解析该公钥 PEM：" + (pubErr && pubErr.message ? pubErr.message : "不是 SPKI 或曲线不匹配"));
+    }
+
+    if (fmt === "jwk") {
+      var jw = JSON.parse(text);
+      var cName = jw.crv === "P-256" || jw.crv === "P-384" ? jw.crv : "";
+      if (!cName) throw new Error("JWK 缺少有效的 crv（P-256 / P-384）");
+      if (wantCurve && wantCurve !== cName) throw new Error("JWK 曲线 " + cName + " 与所选 " + wantCurve + " 不一致");
+      if (jw.d) {
+        var dj = B.base64UrlToBytes(jw.d);
+        var Q = derivePublicKey(dj, cName);
+        return result("private", cName, dj, B.concat(Q.x, Q.y));
+      }
+      if (!jw.x || !jw.y) throw new Error("JWK 既没有 d，也没有 x/y");
+      return result("public", cName, null, B.concat(B.base64UrlToBytes(jw.x), B.base64UrlToBytes(jw.y)));
+    }
+
+    var bytes = B.hexToBytes(text.replace(/0x/gi, ""));
+    if (!bytes.length) throw new Error("未识别到 HEX 输入");
+    var curveName = "";
+    if (bytes[0] === 0x04 && (bytes.length === 65 || bytes.length === 97)) {
+      curveName = bytes.length === 65 ? "P-256" : "P-384";
+      if (wantCurve && wantCurve !== curveName) throw new Error("公钥长度对应 " + curveName + "，与所选 " + wantCurve + " 不一致");
+      var half1 = (bytes.length - 1) / 2;
+      validatePublicPoint(B.bytesToBigInt(bytes.slice(1, 1 + half1)), B.bytesToBigInt(bytes.slice(1 + half1)), curveName);
+      return result("public", curveName, null, bytes.slice(1));
+    }
+    if (bytes.length === 64 || bytes.length === 96) {
+      curveName = bytes.length === 64 ? "P-256" : "P-384";
+      if (wantCurve && wantCurve !== curveName) throw new Error("公钥长度对应 " + curveName + "，与所选 " + wantCurve + " 不一致");
+      var half = bytes.length / 2;
+      validatePublicPoint(B.bytesToBigInt(bytes.slice(0, half)), B.bytesToBigInt(bytes.slice(half)), curveName);
+      return result("public", curveName, null, bytes);
+    }
+    if (bytes.length === 32 || bytes.length === 48) {
+      curveName = bytes.length === 32 ? "P-256" : "P-384";
+      if (wantCurve && wantCurve !== curveName) throw new Error("私钥长度对应 " + curveName + "，与所选 " + wantCurve + " 不一致");
+      var Qp = derivePublicKey(bytes, curveName);
+      return result("private", curveName, bytes, B.concat(Qp.x, Qp.y));
+    }
+    throw new Error("HEX 长度 " + bytes.length + " B 无法识别：私钥应为 32/48 B，公钥应为 64/96 B（X‖Y）或 65/97 B（04‖X‖Y）");
+  }
+
   DLMS.EC = {
     CURVES: CURVES,
     curve: curve,
@@ -406,6 +500,7 @@
     jwkFromPublic: jwkFromPublic,
     importPrivateKey: importPrivateKey,
     importPublicKey: importPublicKey,
+    inspectKey: inspectKey,
     generateKeyPair: generateKeyPair,
     sign: sign,
     verify: verify,

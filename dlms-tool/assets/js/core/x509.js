@@ -182,7 +182,7 @@
     });
     var text = parts.map(function (p) { return p.name + "=" + p.value; }).join(", ");
     var canonical = parts.map(function (p) { return p.oid + "=" + p.value.toLowerCase(); }).sort().join("|");
-    return { text: text, parts: parts, canonical: canonical };
+    return { text: text, parts: parts, canonical: canonical, raw: tlv.raw };
   }
 
   function parseAlgorithm(tlv) {

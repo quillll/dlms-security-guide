@@ -299,6 +299,22 @@
       <a class="side-link side-sub2" href="#ch10-s6">10.6 继续读</a>
       </div>
     </div>
+    <div class="side-group" data-ch="ch11">
+      <div class="side-chrow">
+        <button class="side-caret" type="button" aria-label="展开/收起11 · 证书签发与导入">▸</button>
+        <a class="side-link side-chapter" href="#ch11">11 · 证书签发与导入</a>
+      </div>
+      <div class="side-subs">
+      <a class="side-link side-sub2" href="#ch11-s1">11.1 先判断四种“没有证书”</a>
+      <a class="side-link side-sub2" href="#ch11-s2">11.2 最小证书集合与导入位置</a>
+      <a class="side-link side-sub2" href="#ch11-s3">11.3 每张证书怎么配、怎么生成</a>
+      <a class="side-link side-sub2" href="#ch11-s4">11.4 电表内生成密钥：CSR 路径</a>
+      <a class="side-link side-sub2" href="#ch11-s5">11.5 import_certificate 操作步骤</a>
+      <a class="side-link side-sub2" href="#ch11-s6">11.6 客户端与服务端配置</a>
+      <a class="side-link side-sub2" href="#ch11-s7">11.7 验证与常见失败</a>
+      <a class="side-link side-sub2" href="#ch11-s8">11.8 首次灌装检查表</a>
+      </div>
+    </div>
     <div class="side-group" data-ch="lab">
       <div class="side-chrow">
         <button class="side-caret" type="button" aria-label="展开/收起附录 A · 实战演练">▸</button>
@@ -319,7 +335,7 @@
   <div class="side-foot">
     <a href="index.html">← 返回课程首页</a><br>
     <a href="#">↑ 回到顶部</a><br>
-    <span style="color:#7c7c88;">共 10 章 + 附录</span>
+    <span style="color:#7c7c88;">共 11 章 + 附录</span>
   </div>
 </nav>
 
@@ -337,7 +353,7 @@
 </div>
 
 <div class="mission-line">
-  <b>这份教程怎么用：</b>不要从头背。先读第 1 章建立五个概念的坐标系，然后按你手头的问题跳读：<b>要懂算法</b>→第 2、3 章；<b>要配表/读对象</b>→第 4、5 章；<b>要抓包/解析</b>→第 6 章；<b>登不上/认证失败</b>→第 7 章；<b>换密钥/协商</b>→第 8 章；<b>整体方案</b>→第 9 章。每章末尾都有“一句话带走”。
+  <b>这份教程怎么用：</b>不要从头背。先读第 1 章建立五个概念的坐标系，然后按你手头的问题跳读：<b>要懂算法</b>→第 2、3 章；<b>要配表/读对象</b>→第 4、5 章；<b>要抓包/解析</b>→第 6 章；<b>登不上/认证失败</b>→第 7 章；<b>换密钥/协商</b>→第 8 章；<b>整体方案</b>→第 9 章；<b>新表没证书/要灌装</b>→第 11 章。每章末尾都有“一句话带走”。
 </div>
 
 <div class="callout key">
@@ -366,6 +382,7 @@
     <li class="part">第三部分 · 收口</li>
     <li><a href="#ch9">端到端流程、配置清单与排障</a></li>
     <li><a href="#ch10">自测 12 题与交叉验证记录</a></li>
+    <li><a href="#ch11">新表没有证书：从零签发、导入到验证</a></li>
     <li><a href="#lab">附录 A · 实战演练：一台表的第一次安全会话</a></li>
   </ul>
 </div>
@@ -382,13 +399,14 @@
     <tr><td>密钥怎么协商、怎么传输、怎么轮换</td><td>第 8 章</td></tr>
     <tr><td>整体方案怎么配、出了问题怎么查</td><td>第 9 章</td></tr>
     <tr><td>我到底学会了没有</td><td>第 10 章（12 题）</td></tr>
+    <tr><td>新表没有证书，怎么签发、导入、配置</td><td>第 11 章</td></tr>
   </tbody>
 </table>
 </div>
 
 <div class="grid2">
-  <div class="mini"><b>路线 A · 零基础通读</b>1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 附录 A。每章先看“一句话直觉”和末尾“带走”。</div>
-  <div class="mini"><b>路线 B · 对接排障</b>1.6 → 5.6 → 6.8 → 7.10 → 9.5 → 附录 A。先定位是五个旋钮里的哪一层，再按实战清单走一遍。</div>
+  <div class="mini"><b>路线 A · 零基础通读</b>1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 附录 A。每章先看“一句话直觉”和末尾“带走”。</div>
+  <div class="mini"><b>路线 B · 对接排障</b>1.6 → 5.6 → 6.8 → 7.10 → 9.5 → 11.7 → 附录 A。先定位是五个旋钮里的哪一层，再按实战清单走一遍。</div>
   <div class="mini"><b>路线 C · 只查报文</b>6.1 → 6.5 → 6.6 → 6.7，配合第 6 章的报文拆分器；先拆 Table 48 三条预设。</div>
   <div class="mini"><b>路线 D · 选型/配置</b>4.4 → 5.2 → 8.10 → 9.2 → 9.6。先定套件，再定密钥来源，最后对配置清单。</div>
 </div>
@@ -2695,6 +2713,236 @@ python assets\check-workspace.py</code></pre>
   <li><a href="assets/verify-dlms-gcm.py">verify-dlms-gcm.py</a>　·　<a href="assets/verify-frames.py">verify-frames.py</a></li>
   <li><a href="AUDIT-2026-10-20.md">教程审核报告（2026-10-20）</a>——发现并修复了 key_transfer 的 structure 编码错误</li>
 </ul>
+
+</section>
+
+<!-- ============================================================ -->
+<section class="chapter" id="ch11">
+<p class="kicker">Chapter 11</p>
+<h2>新表没有证书：从零签发、导入到验证</h2>
+
+<div class="one-line"><b>一句话直觉：</b>“表里没有证书”不是让你把某个整数写进去，而是要把<b>一条能链到信任锚的证书链</b>放进 Security setup：CA 证书当“公章样本”，终端证书当“身份证”，私钥必须留在产生它的那一端。</div>
+
+<h3 id="ch11-s1">11.1 先判断四种“没有证书”</h3>
+<p>“没有证书”有四种完全不同的情况，处理方式也不同。先别急着生成，先读表：</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 11.1 · 先分清是真没证书，还是没通道</caption>
+  <thead><tr><th>现象</th><th>判断依据</th><th>能不能加证书</th><th>正确做法</th></tr></thead>
+  <tbody>
+    <tr><td>表只支持 Suite 0</td><td><code>security_suite = 0</code>，或对象里没有 ECDSA/ECDH 能力</td><td><b>不能</b></td><td>证书方案不可用；只能用 GUEK/GBEK 对称保护，或升级固件/换表</td></tr>
+    <tr><td>支持 Suite 1/2，但证书数组为空</td><td>Security setup 属性 6 <code>certificates</code> 长度为 0；<code>security_suite</code> 已是 1 或 2</td><td><b>能</b></td><td>按 11.2 准备证书，按 11.5 导入</td></tr>
+    <tr><td>有证书，但链不完整 / CN 不对 / 过期</td><td><code>export_certificate</code> 能导出，但验链失败</td><td><b>能</b></td><td>缺什么补什么；CN 不对就重新签发，不要手改字段</td></tr>
+    <tr><td>安全策略已激活，且没有初始通道</td><td><code>security_policy</code> 已置位；当前连 LLS/无安全都登不上</td><td><b>通常不能远程做</b></td><td>需要厂商恢复/出厂模式/现场解锁；不要在策略激活前才想起灌证书</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout warn">
+  <span class="label">“没有证书”不等于“不能用 HLS”</span>
+  <p>HLS 3/4/6 用的是 Association 的 <code>secret</code>，不是证书；只有 <b>HLS-7（ECDSA）</b> 才必须有证书。如果表支持 HLS-6 但不支持证书，你仍然可以做挑战-响应认证，只是没有公钥信任链。反过来，<b>Suite 0 也能做 HLS</b>，但只能用对称密钥派生，不能上 ECDSA。</p>
+</div>
+
+<h3 id="ch11-s2">11.2 最小证书集合与导入位置</h3>
+<p>先明确“最小可用”是哪几张。HLS-7 的双方各需要一张<b>签名证书</b>，双方还需要同一张<b>CA 证书</b>作为信任锚。密钥协商和 TLS 是可选加项。</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 11.2 · 证书集合：先最小，再按需加</caption>
+  <thead><tr><th>场景</th><th>必须有的证书</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>只做 HLS-7</td><td>Root-CA + 服务端签名证书 + 客户端签名证书</td><td>最小集合；双方都用 Root 验证对方签名证书</td></tr>
+    <tr><td>HLS-7 + C(1e,1s)/C(0e,2s)</td><td>再加服务端/客户端 key agreement 证书</td><td>协商用的静态公钥也必须被证书绑定</td></tr>
+    <tr><td>HLS-7 + TLS</td><td>再加 TLS 服务端（和客户端）证书</td><td>TLS 证书单独一套，不要和 DLMS 签名证书混用</td></tr>
+    <tr><td>对端证书已预置</td><td>可只预置对端终端证书，不装 CA</td><td>这是“证书固定/pinning”，信任来自配置，不来自链</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 11.3 · 每张证书应该放进哪一端</caption>
+  <thead><tr><th>证书</th><th>电表</th><th>客户端</th><th>备注</th></tr></thead>
+  <tbody>
+    <tr><td>Root-CA（entity=2, type=3 other）</td><td>✓</td><td>✓</td><td>信任锚；双方各存一份，内容相同</td></tr>
+    <tr><td>服务端签名证书（entity=0, type=0）</td><td>✓</td><td>建议 ✓</td><td>私钥只在电表；客户端可用 CA 验它，也可直接钉住它</td></tr>
+    <tr><td>客户端签名证书（entity=1, type=0）</td><td>建议 ✓</td><td>✓</td><td>私钥只在客户端；电表可用 CA 验它，也可直接钉住它</td></tr>
+    <tr><td>服务端 key agreement（entity=0, type=1）</td><td>✓</td><td>建议 ✓</td><td>只在用 C(1e,1s)/C(0e,2s) 时需要</td></tr>
+    <tr><td>客户端 key agreement（entity=1, type=1）</td><td>建议 ✓</td><td>✓</td><td>同上</td></tr>
+    <tr><td>TLS 服务端证书（entity=0, type=2）</td><td>✓</td><td>—</td><td>只有 TLS 通道需要</td></tr>
+    <tr><td><b>CA 私钥</b></td><td><b>✗</b></td><td><b>✗</b></td><td>永远不要导入任何终端；泄露等于整棵子树作废</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout key">
+  <span class="label">记住两个字段</span>
+  <p><code>certificate_entity</code> 回答“证书描述谁”：0 服务端、1 客户端、2 CA、3 其他。CA 证书的 <code>certificate_type</code> 用 <b>3 other</b>；终端签名证书用 0，密钥协商用 1，TLS 用 2。不要把“CA 签发的证书”误当成 <code>entity=2</code>。</p>
+</div>
+
+<h3 id="ch11-s3">11.3 每张证书怎么配、怎么生成</h3>
+<p>下面这张表是签发时的“配方”。套件 2 用 P-384 + SHA-384；套件 1 用 P-256 + SHA-256。Suite 1 允许 P-256 终端密钥由 P-384 CA 签，Suite 2 不做这种混搭。</p>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 11.4 · DLMS 证书配方（Suite 2）</caption>
+  <thead><tr><th>证书</th><th>CN</th><th>basicConstraints</th><th>keyUsage</th><th>其他扩展</th><th>有效期</th></tr></thead>
+  <tbody>
+    <tr><td>Root-CA</td><td><code>Root_CA</code></td><td>critical, CA=TRUE, pathLen=1</td><td>keyCertSign, cRLSign</td><td>SKI 必须有；AKI 可省</td><td>10–20 年</td></tr>
+    <tr><td>Sub-CA（可选）</td><td>以 <code>CA</code> 结尾，如 <code>Sub_CA</code></td><td>critical, CA=TRUE, pathLen=0</td><td>keyCertSign, cRLSign</td><td>SKI + AKI + policy</td><td>5–10 年</td></tr>
+    <tr><td>服务端签名</td><td>16 位 System Title HEX</td><td>不出现</td><td>critical, digitalSignature</td><td>AKI</td><td>可到 <code>99991231235959Z</code></td></tr>
+    <tr><td>客户端签名</td><td>16 位 System Title HEX</td><td>不出现</td><td>critical, digitalSignature</td><td>AKI</td><td>2–10 年</td></tr>
+    <tr><td>服务端密钥协商</td><td>16 位 System Title HEX</td><td>不出现</td><td>critical, keyAgreement</td><td>AKI</td><td>2–10 年</td></tr>
+    <tr><td>客户端密钥协商</td><td>16 位 System Title HEX</td><td>不出现</td><td>critical, keyAgreement</td><td>AKI</td><td>2–10 年</td></tr>
+    <tr><td>TLS 服务端</td><td>System Title HEX 或 FQDN</td><td>不出现</td><td>critical, digitalSignature + keyAgreement</td><td>AKI + EKU serverAuth</td><td>≤ 2 年</td></tr>
+    <tr><td>TLS 客户端</td><td>System Title HEX 或 FQDN</td><td>不出现</td><td>critical, digitalSignature + keyAgreement</td><td>AKI + EKU clientAuth</td><td>≤ 2 年</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>生成顺序</b>（用本工作区的 <a href="dlms-tool/index.html#certgen">证书签发工具</a> 或你自己的 CA）：</p>
+<ol>
+  <li><b>Root-CA</b>：选 Root-CA，CN 填 <code>Root_CA</code>，pathLen 填 1，有效期 10–20 年；生成后把 <b>证书 PEM</b> 和 <b>CA 私钥 PEM</b> 离线保存。CA 私钥不进电表。</li>
+  <li><b>Sub-CA（可选）</b>：角色选 Sub-CA，CN 以 <code>CA</code> 结尾，pathLen 填 0；用 Root 的证书和私钥签发。</li>
+  <li><b>服务端签名证书</b>：生产环境不要用工具直接生成私钥；走 11.4 的 CSR 路径。实验室可用“终端证书 + 数字签名”，System Title 填电表的 8 字节 HEX。</li>
+  <li><b>客户端签名证书</b>：同样方式，System Title 填客户端自己的 8 字节 HEX；私钥留在客户端软件/安全模块。</li>
+  <li><b>密钥协商证书</b>：如果要用 C(1e,1s) 或 C(0e,2s)，再各生成一张 <code>keyAgreement</code> 证书；不要拿签名证书去协商。</li>
+  <li><b>TLS 证书</b>：只有 TLS 通道才生成；EKU 选 serverAuth/clientAuth，不要加 DLMS 签名用途。</li>
+  <li><b>验一遍</b>：把生成的证书点“送到证书解析”，确认 CN、keyUsage、SKI/AKI、有效期与上表一致。</li>
+</ol>
+
+<div class="callout">
+  <span class="label">证书里的公钥包装</span>
+  <p>证书的 <code>subjectPublicKeyInfo</code> 里是未压缩点 <code>04‖X‖Y</code>（P-256 65 B，P-384 97 B）。把它拿去拼 DLMS 的 <code>key_agreement.key_data</code> 时，<b>要去掉 <code>04</code></b>，只留裸 <code>X‖Y</code>（64/96 B）。多一个字节，后面全部错位。</p>
+</div>
+
+<h3 id="ch11-s4">11.4 电表内生成密钥：CSR 路径</h3>
+<p>这是生产环境唯一推荐的路径。原因很简单：<b>DLMS 没有标准的“导入私钥”方法</b>。Security setup 只有 <code>generate_key_pair</code>、<code>generate_certificate_request</code>、<code>import_certificate</code>；<code>import_certificate</code> 只收证书 DER，不收私钥。因此：</p>
+
+<div class="flow">
+  <div class="step"><b>① 表内生成密钥</b><span>generate_key_pair(0 签名 / 1 协商 / 2 TLS)</span></div>
+  <div class="step"><b>② 表内出 CSR</b><span>generate_certificate_request(同类型) → PKCS#10 DER</span></div>
+  <div class="step"><b>③ CA 签发</b><span>把 CSR 交给 CA；工具里选“签发 CSR”</span></div>
+  <div class="step"><b>④ 导入证书</b><span>import_certificate(证书 DER)</span></div>
+  <div class="step"><b>⑤ 使用/更新</b><span>更新时重新 ①–④；自己的证书不能只删不换</span></div>
+</div>
+
+<p>用工具签发 CSR 的步骤：</p>
+<ol>
+  <li>打开 <a href="dlms-tool/index.html#certgen">证书签发</a>，角色选“<b>签发 CSR（电表内生成密钥）</b>”。</li>
+  <li>把电表 <code>generate_certificate_request</code> 返回的 PKCS#10 贴进 CSR 框：支持 <b>PEM</b>、<b>裸 Base64</b> 和 <b>DER HEX</b>。电表返回 octet-string 时，直接切到 <b>HEX</b> 粘贴，不用先转 PEM。</li>
+  <li>签发者证书/私钥填 Root（或 Sub-CA）；留空则使用本次会话刚生成的 CA。</li>
+  <li>用途选“数字签名”（HLS-7）、“密钥协商”或“TLS”。</li>
+  <li>点“生成并签发”。工具只输出<b>证书 PEM / DER HEX</b>，私钥框为空——因为私钥一直在电表里。</li>
+  <li>把 DER HEX 或证书 DER 交给 <code>import_certificate</code>。</li>
+</ol>
+
+<div class="callout trap">
+  <span class="label">不要用“表外生成私钥再灌进去”</span>
+  <p>除非厂商明确提供密钥注入工具，否则不要把工具的私钥 PEM 写进电表。标准 <code>import_certificate</code> 没有私钥参数；私钥外灌会破坏“私钥不出设备”的安全边界，也会导致证书与表内密钥不匹配。</p>
+</div>
+
+<h3 id="ch11-s5">11.5 import_certificate 操作步骤</h3>
+<p>下面按“从一台空表开始”的顺序写。方法编号按蓝皮书 Security setup：4 <code>generate_key_pair</code>、5 <code>generate_certificate_request</code>、6 <code>import_certificate</code>、7 <code>export_certificate</code>、8 <code>remove_certificate</code>。</p>
+
+<ol>
+  <li><b>记录基线</b>：读并保存 <code>security_suite</code>（属性 3）、<code>security_policy</code>（属性 2）、Association 的 <code>security_setup_reference</code>、当前认证方式和客户端权限。先备份配置，再动手。</li>
+  <li><b>确认初始通道</b>：方法 6 通常要求已有安全会话或厂商模式。新表一般用 LLS/出厂口令/光学口做首次引导；如果表已经被策略锁死，先不要反复试，联系厂商恢复。</li>
+  <li><b>读证书数组</b>：读 Security setup 属性 6 <code>certificates</code>，确认当前是空数组还是已有条目；同时读属性 3 确认 <code>security_suite</code> 是 1 或 2。</li>
+  <li><b>先导 Root-CA</b>：用 <code>import_certificate( Root_CA 的 DER )</code>。Root 是信任锚，必须先于终端证书存在，否则后续验链没有落点。</li>
+  <li><b>再导服务端终端证书</b>：<code>import_certificate( 服务端签名证书 DER )</code>。如果表支持 key agreement，再导服务端协商证书；TLS 需要时再导 TLS 证书。</li>
+  <li><b>导客户端证书</b>：如果电表要在“没有收到客户端证书”的情况下也能验证客户端，把客户端签名证书也导进表里（entity=1）；否则可以只让客户端在 AARQ 里携带，电表用 Root 验。</li>
+  <li><b>核对条目</b>：用 <code>export_certificate(by_entity)</code> 或 <code>by_serial</code> 把每张证书导出来，逐张核对 CN、keyUsage、AKI/SKI、有效期。不要只看“导入成功”就结束。</li>
+  <li><b>配置套件与策略</b>：把 <code>security_suite</code> 设为 1 或 2；按需设置 <code>security_policy</code> 的认证/加密/签名位；把 Association 的认证机制设为 <b>HLS-7</b>。</li>
+  <li><b>最后才激活策略</b>：<code>security_activate</code> 是单向棘轮，只能加强不能减弱。确认证书、密钥、客户端配置都正确后，再激活；激活后如果证书链有问题，远程可能已经登不上了。</li>
+  <li><b>做一次 HLS-7 会话</b>：客户端在 AARQ 的 <code>calling-AE-qualifier</code> 带客户端签名证书；服务端在 AARE 的 <code>responding-AE-qualifier</code> 带服务端签名证书；双方各自用 Root 验链，再验挑战签名。</li>
+</ol>
+
+<div class="callout warn">
+  <span class="label">导入顺序与策略顺序</span>
+  <p>正确顺序是：<b>Root → 终端证书 → 套件/机制 → 策略激活 → 测试</b>。反过来先激活策略，再发现链缺一张，通常只能现场恢复。每次只改一层，改完立刻读回核对。</p>
+</div>
+
+<h3 id="ch11-s6">11.6 客户端与服务端配置</h3>
+
+<div class="grid2">
+  <div class="mini"><b>电表（服务端）</b>
+    <ul>
+      <li><code>security_suite</code>：1 或 2，与证书曲线一致</li>
+      <li><code>certificates</code>：Root、服务端签名、服务端协商（可选）、TLS（可选）、客户端证书（可选）</li>
+      <li>Association：认证机制 7；<code>security_setup_reference</code> 指向 Security setup</li>
+      <li>私钥：只在表内，由 <code>generate_key_pair</code> 产生</li>
+      <li>策略：先测试，后激活</li>
+    </ul>
+  </div>
+  <div class="mini"><b>客户端</b>
+    <ul>
+      <li>信任锚：Root 证书（或直接钉住服务端证书）</li>
+      <li>自己的签名证书 + 私钥；需要协商时再加 key agreement 证书 + 私钥</li>
+      <li>AARQ：<code>calling-AE-qualifier</code> 携带客户端证书</li>
+      <li>验证 AARE：用 Root 验服务端证书，再验挑战签名</li>
+      <li>时钟：证书有效期校验依赖本地时间</li>
+    </ul>
+  </div>
+</div>
+
+<p>如果双方都只在 AARQ/AARE 里携带证书、且本地只有 Root，那么<b>不需要把对方终端证书预置进来</b>；如果现场为了减少报文长度或做 pinning，也可以预置对方证书，但要接受“换证就要同步更新”的运维成本。</p>
+
+<h3 id="ch11-s7">11.7 验证与常见失败</h3>
+<p>每导入一张证书，至少做这五件事：</p>
+<ol>
+  <li><b>解析</b>：确认版本 v3、CN 正确、有效期覆盖当前时间。</li>
+  <li><b>验链</b>：终端证书 → Sub-CA（如果有）→ Root；每一级签名都验过。</li>
+  <li><b>查权限</b>：CA 证书必须有 <code>basicConstraints CA=TRUE</code> 和 <code>keyCertSign</code>；终端证书的 keyUsage 必须与用途一致。</li>
+  <li><b>查绑定</b>：终端证书的 CN（或 SAN 的 <code>hwSerialNum</code>）必须等于对端 System Title。</li>
+  <li><b>查曲线</b>：Suite 2 用 P-384；Suite 1 用 P-256；混合链要确认签发者曲线与签名算法。</li>
+</ol>
+
+<div class="table-scroll">
+<table>
+  <caption>Table 11.5 · 证书导入/握手失败对照</caption>
+  <thead><tr><th>症状</th><th>常见原因</th><th>检查</th></tr></thead>
+  <tbody>
+    <tr><td><code>import_certificate</code> 直接拒绝</td><td>传了 PEM 而不是 DER；或 octet-string 里带了头尾</td><td>Base64 解码后只留 DER 字节；长度与证书文件一致</td></tr>
+    <tr><td>导入成功但握手时“证书无效”</td><td>CN 不是 System Title；或大小写/字节序不对</td><td>CN 必须是 8 字节 ST 的 16 个 HEX 字符</td></tr>
+    <tr><td>验链失败“找不到签发者”</td><td>只导了终端证书，没导 Root/Sub</td><td>先导 Root，再导 Sub，最后导终端；用 AKI→SKI 对</td></tr>
+    <tr><td>验链失败“keyUsage 不符”</td><td>拿签名证书做 ECDH，或拿协商证书做 ECDSA</td><td>签名用 <code>digitalSignature</code>；协商用 <code>keyAgreement</code></td></tr>
+    <tr><td>验链失败“曲线不支持”</td><td>Suite 2 配了 P-256 终端证书；或 CA 与终端曲线混搭</td><td>Suite 2 全链 P-384；Suite 1 允许 P-256 由 P-384 CA 签</td></tr>
+    <tr><td>证书“已过期”</td><td>表计时钟错误；或 CA 有效期太短</td><td>校时；服务器证书可用 9999，CA 用明确日期</td></tr>
+    <tr><td>握手时对端没收到证书</td><td>AARQ/AARE 没带 <code>*-AE-qualifier</code>；或本地没预置</td><td>抓 AARQ/AARE，确认证书字段存在</td></tr>
+    <tr><td>换了新证书后旧会话还能用</td><td>只换了证书，没换密钥对；或策略没重载</td><td>重新 <code>generate_key_pair</code> → CSR → 导入；必要时重启安全上下文</td></tr>
+    <tr><td>策略激活后无法再导入</td><td>顺序反了：先激活，后灌证书</td><td>现场恢复/厂商模式；下次严格按 11.5 的顺序</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="ch11-s8">11.8 首次灌装检查表</h3>
+<div class="table-scroll">
+<table>
+  <caption>Table 11.6 · 新表证书灌装放行清单</caption>
+  <thead><tr><th>#</th><th>检查项</th><th>通过标准</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>表支持套件</td><td><code>security_suite</code> 可设为 1/2，且有 ECDSA/ECDH 能力</td></tr>
+    <tr><td>2</td><td>Root 已导入</td><td>属性 6 中存在 entity=2 的 CA 证书，能自洽验签</td></tr>
+    <tr><td>3</td><td>服务端签名证书</td><td>CN=表 ST，keyUsage=digitalSignature，链到 Root</td></tr>
+    <tr><td>4</td><td>服务端私钥</td><td>在表内生成，未外灌；证书公钥与私钥匹配</td></tr>
+    <tr><td>5</td><td>客户端签名证书</td><td>CN=客户端 ST，keyUsage=digitalSignature，链到 Root</td></tr>
+    <tr><td>6</td><td>协商证书（如用）</td><td>keyUsage=keyAgreement，且与签名证书分开</td></tr>
+    <tr><td>7</td><td>TLS 证书（如用）</td><td>EKU serverAuth/clientAuth，未混入 DLMS 签名用途</td></tr>
+    <tr><td>8</td><td>套件与曲线</td><td>Suite 2 全链 P-384；Suite 1 全链 P-256 或 P-256 终端 + P-384 CA</td></tr>
+    <tr><td>9</td><td>认证机制</td><td>Association 已设为 HLS-7；客户端支持签名证书</td></tr>
+    <tr><td>10</td><td>策略</td><td>最后激活；激活前已完成一次成功握手</td></tr>
+    <tr><td>11</td><td>时间</td><td>表与客户端时钟在有效期附近无偏差</td></tr>
+    <tr><td>12</td><td>可回滚</td><td>CA 私钥、证书、配置已备份；知道现场恢复方式</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout key">
+  <span class="label">本章带走</span>
+  <p><b>新表没有证书，不是“缺一个整数”，而是缺一条信任链。</b>最小集合是 Root + 服务端签名 + 客户端签名；生产环境让私钥在表内生成、只把 CSR 送出来，CA 签完再 <code>import_certificate</code> 导回证书。顺序永远是“先 Root、再终端、再套件/机制、最后激活策略”，任何一步反了，都可能把表锁在门外。</p>
+</div>
 
 </section>
 
