@@ -55,6 +55,7 @@ window.addEventListener("unhandledrejection", function (e) {
       <button class="nav-item" data-view="sign"><svg class="ico"><use href="#i-pen"/></svg>数字签名</button>
       <button class="nav-item" data-view="cert"><svg class="ico"><use href="#i-badge"/></svg>证书</button>
       <button class="nav-item" data-view="certgen"><svg class="ico"><use href="#i-badge"/></svg>证书签发</button>
+      <button class="nav-item" data-view="pki"><svg class="ico"><use href="#i-badge"/></svg>整套证书</button>
 
       <div class="nav-label">参考</div>
       <button class="nav-item" data-view="registry"><svg class="ico"><use href="#i-grid"/></svg>算法总览</button>
@@ -490,6 +491,7 @@ window.addEventListener("unhandledrejection", function (e) {
 
       <!-- ================= 证书签发 ================= -->
       <section class="view" id="view-certgen">
+        <span id="certgen"></span>
         <div class="page-head">
           <div>
             <p class="kicker">Certificate issuance · 07b</p>
@@ -508,8 +510,8 @@ window.addEventListener("unhandledrejection", function (e) {
             </div>
             <div class="control-grid three" id="cg-subject-wrap">
               <div><span class="control-label">CN</span><input class="mono-input" id="cg-cn" value="Root_CA" spellcheck="false"><div class="field-foot"><span class="hint" id="cg-cn-hint">CA 名称；终端证书会改用 System Title</span></div></div>
-              <div><span class="control-label">O（可选）</span><input class="mono-input" id="cg-o" value="DLMS USER ASSOCIATION" spellcheck="false"></div>
-              <div><span class="control-label">C（可选）</span><input class="mono-input" id="cg-c" value="CH" maxlength="2" spellcheck="false"></div>
+              <div><span class="control-label">O（可选）</span><input class="mono-input" id="cg-o" value="" placeholder="留空" spellcheck="false"></div>
+              <div><span class="control-label">C（可选）</span><input class="mono-input" id="cg-c" value="" maxlength="2" placeholder="如 CN" spellcheck="false"></div>
             </div>
             <div class="control-grid three">
               <div id="cg-ou-wrap"><span class="control-label">OU（可选）</span><input class="mono-input" id="cg-ou" placeholder="Metering" spellcheck="false"></div>
@@ -527,6 +529,7 @@ window.addEventListener("unhandledrejection", function (e) {
             </div>
             <div class="field" id="cg-csr-wrap" hidden><div class="field-head"><label for="cg-csr">CSR（PKCS#10 PEM / DER HEX） <span class="req">由电表生成</span></label><div class="field-tools"><div class="seg" id="cg-csr-format"><button class="active" data-csr="pem">PEM</button><button data-csr="hex">HEX</button></div></div></div><textarea class="mono-input" id="cg-csr" spellcheck="false" placeholder="-----BEGIN CERTIFICATE REQUEST-----&#10;...&#10;-----END CERTIFICATE REQUEST-----"></textarea><div class="field-foot"><span class="hint" id="cg-csr-hint">支持 PEM 或裸 Base64；切到 HEX 可直接粘贴电表返回的 DER 十六进制</span></div></div>
             <div id="cg-issuer-wrap" hidden>
+              <div class="field" id="cg-ca-pick-wrap" hidden><div class="field-head"><label for="cg-ca-pick">从密钥包选择 CA</label></div><select class="select" id="cg-ca-pick"></select><div class="field-foot"><span class="hint">选中后自动填入下面的证书与私钥；也可以继续手填</span></div></div>
               <div class="field"><div class="field-head"><label for="cg-issuer-cert">签发者证书 PEM <span class="req">上级 CA</span></label></div><textarea class="mono-input" id="cg-issuer-cert" spellcheck="false" placeholder="留空则使用本次会话刚生成的 CA"></textarea><div class="field-foot"><span class="hint">Sub/终端证书必须能链到这张证书</span></div></div>
               <div class="field"><div class="field-head"><label for="cg-issuer-key">签发者私钥 PEM <span class="req">PKCS#8</span></label></div><textarea class="mono-input" id="cg-issuer-key" spellcheck="false" placeholder="CA 私钥只在这里临时使用，不会上传"></textarea><div class="field-foot"><span class="hint">工具会先用它做一次签名/验签，确认与证书公钥匹配</span></div></div>
             </div>
@@ -542,6 +545,84 @@ window.addEventListener("unhandledrejection", function (e) {
               <div class="field"><div class="field-head"><label for="cg-out-der">证书 DER（HEX，import_certificate 用）</label><div class="field-tools"><button class="mini-btn" id="cg-copy-der">复制</button></div></div><textarea class="mono-input" id="cg-out-der" spellcheck="false" readonly style="min-height:70px"></textarea></div>
               <div class="field"><div class="field-head"><label for="cg-out-keyhex">公钥 / 私钥 HEX</label><div class="field-tools"><button class="mini-btn" id="cg-copy-keyhex">复制</button></div></div><textarea class="mono-input" id="cg-out-keyhex" spellcheck="false" readonly style="min-height:120px"></textarea><div class="field-foot"><span class="hint">公钥 X‖Y 用于 key_agreement.key_data；04‖X‖Y 是证书里的 SPKI 点；私钥 d 为裸标量</span></div></div>
               <div class="actions"><button class="btn ghost" id="cg-download">下载证书 PEM</button><button class="btn ghost" id="cg-send-cert">送到证书解析</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 整套证书 ================= -->
+      <section class="view" id="view-pki">
+        <span id="pki"></span>
+        <div class="page-head">
+          <div>
+            <p class="kicker">Test PKI bundle · 07c</p>
+            <h1>整套证书 <span class="h1-sub">Suite 1 / 2</span></h1>
+            <p class="lede">一次生成两套测试证书：每套一张 Root-CA、一张客户端签名证书、一张客户端密钥协商证书。导出为可恢复的密钥包，或带「电表导入清单」的 ZIP。</p>
+          </div>
+          <div class="head-meta"><span class="pill pill-ok">本地生成</span><span class="badge">含私钥 · TEST ONLY</span></div>
+        </div>
+        <div class="tool-grid">
+          <div class="card card-pad">
+            <h3>1 · 测试身份</h3>
+            <div class="field">
+              <div class="field-head"><label for="pki-st">客户端 System Title <span class="req">8 B / 16 HEX</span></label></div>
+              <input class="mono-input" id="pki-st" data-fmt="hex" data-hex="4D4D4D0000BC614E" value="4D 4D 4D 00 00 BC 61 4E" spellcheck="false">
+              <div class="field-foot"><span class="hint">两张客户端证书的 CN 都用它；签名与协商各用独立密钥对</span></div>
+            </div>
+            <div class="control-grid three">
+              <div><span class="control-label">O（可选）</span><input class="mono-input" id="pki-o" value="" placeholder="留空" spellcheck="false"></div>
+              <div><span class="control-label">OU（可选）</span><input class="mono-input" id="pki-ou" value="" placeholder="留空" spellcheck="false"></div>
+              <div><span class="control-label">C（可选）</span><input class="mono-input" id="pki-c" value="" maxlength="2" placeholder="如 CN" spellcheck="false"></div>
+            </div>
+            <div class="control-grid three">
+              <div><span class="control-label">CA 名称前缀</span><input class="mono-input" id="pki-ca-name" value="Root_CA" spellcheck="false"><div class="field-foot"><span class="hint">工具会自动加 _S1 / _S2 后缀</span></div></div>
+              <div><span class="control-label">起始日期</span><input class="mono-input" id="pki-notbefore" type="date" value="2000-01-01"></div>
+              <div><span class="control-label">结束日期</span><input class="mono-input" id="pki-notafter" type="date" value="2099-01-01"></div>
+            </div>
+            <details class="pki-advanced">
+              <summary>高级：分别指定序列号（留空随机）</summary>
+              <div class="control-grid three">
+                <div><span class="control-label">Suite 1 · CA</span><input class="mono-input" id="pki-serial-s1-ca" placeholder="随机" spellcheck="false"></div>
+                <div><span class="control-label">Suite 1 · 签名</span><input class="mono-input" id="pki-serial-s1-client-sign" placeholder="随机" spellcheck="false"></div>
+                <div><span class="control-label">Suite 1 · 协商</span><input class="mono-input" id="pki-serial-s1-client-key-agreement" placeholder="随机" spellcheck="false"></div>
+              </div>
+              <div class="control-grid three">
+                <div><span class="control-label">Suite 2 · CA</span><input class="mono-input" id="pki-serial-s2-ca" placeholder="随机" spellcheck="false"></div>
+                <div><span class="control-label">Suite 2 · 签名</span><input class="mono-input" id="pki-serial-s2-client-sign" placeholder="随机" spellcheck="false"></div>
+                <div><span class="control-label">Suite 2 · 协商</span><input class="mono-input" id="pki-serial-s2-client-key-agreement" placeholder="随机" spellcheck="false"></div>
+              </div>
+              <div class="field-foot" style="margin-bottom:9px"><span class="hint">十进制 / 0x 十六进制 / 纯十六进制；例 1、0x2A、2A；上限 20 字节</span></div>
+            </details>
+            <div class="control-grid two">
+              <div><span class="control-label">生成套件</span><div class="seg" id="pki-suites"><button class="active" data-suites="both">Suite 1 + 2</button><button data-suites="1">仅 Suite 1</button><button data-suites="2">仅 Suite 2</button></div></div>
+              <div><span class="control-label">密钥包口令（可选）</span><input class="mono-input" id="pki-pass" type="password" placeholder="留空 = 明文 JSON" spellcheck="false" autocomplete="new-password"><div class="field-foot"><span class="hint">导出时加密；导入加密包时填同一个口令</span></div></div>
+            </div>
+            <div class="actions"><button class="btn primary" id="pki-run">一键生成整套</button><button class="btn ghost" id="pki-clear">清空当前</button><span class="action-note">全部在本地完成</span></div>
+            <div class="hint" id="pki-state">还没有生成密钥包。</div>
+            <div class="note" style="margin-top:10px">密钥包包含私钥，只用于测试。CA 私钥不要导入电表；不要提交到仓库，也不要用于生产。</div>
+          </div>
+          <div class="right-stack">
+            <div class="card card-pad">
+              <h3>2 · 证书清单 <span class="badge" id="pki-badge">等待生成</span></h3>
+              <div class="hint" id="pki-summary">生成后显示证书、链式校验与导入顺序。</div>
+              <div id="pki-list"><div class="pki-empty">还没有证书。填写左边信息后点“一键生成整套”。</div></div>
+            </div>
+            <div class="card card-pad">
+              <h3>3 · 导出 / 恢复</h3>
+              <div class="field-foot" style="justify-content:flex-start;margin-bottom:8px"><div class="seg" id="pki-auto" style="max-width:300px"><button class="active" data-auto="on">生成后自动下载 .json</button><button data-auto="off">关闭自动下载</button></div></div>
+              <div class="actions" style="margin-top:0;padding-top:0;border-top:0">
+                <button class="btn primary" id="pki-export-json">下载密钥包 .json</button>
+                <button class="btn ghost" id="pki-export-zip">下载 .zip（明文 PEM + 清单）</button>
+                <button class="btn ghost" id="pki-copy-import">复制电表导入清单</button>
+              </div>
+              <div class="field-foot" style="margin-top:6px"><span class="hint">JSON 支持口令加密；ZIP 始终是明文 PEM / 私钥，不要外发</span></div>
+              <div class="field">
+                <div class="field-head"><label for="pki-import-text">导入密钥包</label><div class="field-tools"><button class="mini-btn" id="pki-pick-file" type="button">选择文件…</button><input id="pki-import-file" type="file" accept=".json,.txt,application/json" hidden></div></div>
+                <textarea class="mono-input" id="pki-import-text" spellcheck="false" placeholder="把密钥包 JSON 粘贴到这里，或点右上角“选择文件…”"></textarea>
+                <div class="field-foot"><span class="hint">支持明文包与口令加密包；ZIP 请先取出 manifest.json</span></div>
+              </div>
+              <div class="actions"><button class="btn primary" id="pki-import-run">解析并恢复</button><div class="seg" id="pki-import-mode"><button class="active" data-import-mode="replace">替换</button><button data-import-mode="merge">合并</button></div><span class="action-note">私钥只在本地</span></div>
+              <div id="pki-import-report"></div>
             </div>
           </div>
         </div>
@@ -631,6 +712,7 @@ window.addEventListener("unhandledrejection", function (e) {
 <script src="assets/js/core/ec.js"></script>
 <script src="assets/js/core/x509.js"></script>
 <script src="assets/js/core/certgen.js"></script>
+<script src="assets/js/core/pkibundle.js"></script>
 <script src="assets/js/core/dlms.js"></script>
 <script src="assets/js/vectors.js"></script>
 <script src="assets/js/ui/components.js"></script>

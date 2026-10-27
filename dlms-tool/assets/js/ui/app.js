@@ -8,6 +8,7 @@
   var B = DLMS.Bytes, H = DLMS.Hash, G = DLMS.GCM, KW = DLMS.AESKW;
   var KDF = DLMS.KDF, CRC = DLMS.CRC, EC = DLMS.EC, X509 = DLMS.X509;
   var CG = DLMS.CertGen;
+  var PB = DLMS.PKIBundle;
   var D = DLMS.DLMS, V = DLMS.Vectors, UI = DLMS.UI;
   var $ = UI.$, $$ = UI.$$;
   var toast = UI.toast;
@@ -21,6 +22,7 @@
     sign: { title: "数字签名" },
     cert: { title: "X.509 证书" },
     certgen: { title: "证书签发" },
+    pki: { title: "整套证书" },
     parse: { title: "报文解析" },
     registry: { title: "算法总览" },
     vectors: { title: "测试向量" }
@@ -1275,6 +1277,11 @@
      证书签发
      ============================================================ */
   var lastCA = null;
+  var pkiBundle = null;
+  var lastPkiReport = null;
+  var pkiAutoDownload = true;
+  var pkiZipConfirmUntil = 0;
+  var syncIssuerOptions = function () {};
 
   function normalizeSystemTitle(text) {
     var s = String(text || "").replace(/0x/gi, "").replace(/[\s:_,\-]/g, "");
@@ -1317,6 +1324,39 @@
 
     role.addEventListener("change", syncForm);
     usage.addEventListener("change", syncForm);
+
+    syncIssuerOptions = function () {
+      var wrap = $("#cg-ca-pick-wrap");
+      var sel = $("#cg-ca-pick");
+      if (!wrap || !sel) return;
+      var options = [];
+      if (pkiBundle) {
+        pkiBundle.entries.filter(function (e) { return e.kind === "ca"; }).forEach(function (e) {
+          options.push({ id: e.id, label: "密钥包 · Suite " + e.suite + " · " + e.cn, cert: pkiCertPem(e), key: e.keyPem });
+        });
+      }
+      if (lastCA && !options.some(function (o) { return o.cert === lastCA.certPem; })) {
+        options.push({ id: "session", label: "本次会话 · " + lastCA.cn, cert: lastCA.certPem, key: lastCA.keyPem });
+      }
+      if (!options.length) {
+        wrap.hidden = true;
+        sel.innerHTML = "";
+        return;
+      }
+      wrap.hidden = false;
+      sel.innerHTML = '<option value="">— 手填 / 使用本次 CA —</option>' + options.map(function (o) {
+        return '<option value="' + UI.esc(o.id) + '">' + UI.esc(o.label) + "</option>";
+      }).join("");
+      sel.value = "";
+      sel.onchange = function () {
+        var id = sel.value;
+        var hit = options.filter(function (o) { return o.id === id; })[0];
+        if (!hit) return;
+        $("#cg-issuer-cert").value = hit.cert;
+        $("#cg-issuer-key").value = hit.key;
+        toast("已填入 " + hit.label + " 的证书与私钥");
+      };
+    };
 
     function csrDerFromText(text, mode) {
       var t = String(text || "").trim();
@@ -1530,6 +1570,7 @@
         if (isCA) {
           lastCA = { certPem: out.pem, keyPem: out.privateKeyPem, der: out.der, cn: subject.CN, curve: curve };
           $("#cg-ca-state").textContent = "本次 CA：" + subject.CN + " · " + curve + " · SKI " + out.ski;
+          syncIssuerOptions();
         }
 
         var ku = out.cert.extensions["2.5.29.15"].value.usages.join(", ");
@@ -1553,6 +1594,348 @@
     }
 
     syncForm();
+    syncIssuerOptions();
+  }
+
+  /* ============================================================
+     整套证书 / 测试密钥包
+     ============================================================ */
+  function pkiShort(text, n) {
+    var s = String(text == null ? "" : text);
+    return s.length > n ? s.slice(0, n) + "…" : s;
+  }
+
+  function pkiSuiteSelection() {
+    var v = UI.activeButton($("#pki-suites")).getAttribute("data-suites");
+    return v === "both" ? [1, 2] : [parseInt(v, 10)];
+  }
+
+  function pkiDateFromInput(id, label) {
+    var text = $(id).value.trim();
+    if (!text) return null;
+    var parts = text.split("-").map(function (x) { return parseInt(x, 10); });
+    if (parts.length !== 3) throw new Error(label + "格式无效");
+    var d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 0, 0, 0));
+    if (isNaN(d.getTime())) throw new Error(label + "格式无效");
+    return d;
+  }
+
+  function pkiCollectSerials() {
+    var serials = {};
+    ["s1-ca", "s1-client-sign", "s1-client-key-agreement",
+      "s2-ca", "s2-client-sign", "s2-client-key-agreement"].forEach(function (id) {
+      var el = document.getElementById("pki-serial-" + id);
+      if (!el) return;
+      var value = el.value.trim();
+      if (value) serials[id] = value;
+    });
+    return serials;
+  }
+
+  function pkiEntryById(id) {
+    if (!pkiBundle) return null;
+    return pkiBundle.entries.filter(function (e) { return e.id === id; })[0] || null;
+  }
+
+  function pkiEntryBase(entry) {
+    return "dlms-s" + entry.suite + "-" + (PB.KIND_FILE[entry.kind] || entry.kind);
+  }
+
+  function pkiCertPem(entry) {
+    return entry.certPem || X509.toPem(B.hexToBytes(entry.certDerHex), "CERTIFICATE");
+  }
+
+  function pkiAdoptCA() {
+    if (!pkiBundle) return;
+    var cas = pkiBundle.entries.filter(function (e) { return e.kind === "ca"; });
+    if (!cas.length) return;
+    var ca = cas[cas.length - 1];
+    lastCA = { certPem: pkiCertPem(ca), keyPem: ca.keyPem, der: B.hexToBytes(ca.certDerHex), cn: ca.cn, curve: ca.curve };
+    $("#cg-ca-state").textContent = "本次 CA：" + ca.cn + " · " + ca.curve + " · SKI " + ca.ski +
+      "（密钥包里共 " + cas.length + " 张 CA）";
+  }
+
+  function pkiRenderList(report) {
+    var box = $("#pki-list");
+    if (!pkiBundle) {
+      box.innerHTML = '<div class="pki-empty">还没有证书。填写左边信息后点“一键生成整套”。</div>';
+      return;
+    }
+    var entries = pkiBundle.entries.slice().sort(function (a, b) {
+      if (a.suite !== b.suite) return a.suite - b.suite;
+      return PB.KIND_ORDER.indexOf(a.kind) - PB.KIND_ORDER.indexOf(b.kind);
+    });
+    var suites = [];
+    entries.forEach(function (e) {
+      if (suites.indexOf(e.suite) < 0) suites.push(e.suite);
+    });
+    suites.sort();
+    var html = "";
+    suites.forEach(function (s) {
+      var list = entries.filter(function (e) { return e.suite === s; });
+      var suiteReports = report ? report.entries.filter(function (x) { return x.suite === s; }) : [];
+      var suiteOk = suiteReports.length > 0 && suiteReports.every(function (x) { return x.ok; });
+      html += '<div class="pki-group"><div class="pki-group-head"><strong>Suite ' + s + "</strong>" +
+        '<span class="hint">' + PB.SUITES[s].curve + " · " + list.length + " 张</span>" +
+        '<span class="pill ' + (suiteOk ? "pill-ok" : "pill-bad") + '">' + (suiteOk ? "校验通过" : "校验失败") + "</span></div>";
+      html += '<div class="pki-table-wrap"><table class="vector-table"><thead><tr><th>证书</th><th>keyUsage</th><th>有效期</th><th>操作</th></tr></thead><tbody>';
+      list.forEach(function (e) {
+        html += "<tr><td>" +
+          '<div class="pki-cn"><b>' + UI.esc(PB.KIND_LABEL[e.kind] || e.kind) + "</b></div>" +
+          '<div class="pki-cn">CN ' + UI.esc(e.cn) + "</div>" +
+          '<div class="pki-cn">Serial ' + UI.esc(e.serial) + "</div>" +
+          '<div class="pki-cn">SKI ' + UI.esc(pkiShort(e.ski, 20)) + "</div></td>" +
+          '<td class="pki-cn">' + UI.esc((e.keyUsage || []).join(", ")) + "</td>" +
+          '<td class="pki-cn">' + UI.esc(String(e.notBefore || "").slice(0, 10)) + "<br>" +
+          UI.esc(String(e.notAfter || "").slice(0, 10)) + "</td>" +
+          '<td><div class="pki-actions">' +
+          '<button class="mini-btn" data-pki-act="pem" data-pki-id="' + UI.esc(e.id) + '">PEM</button>' +
+          (e.keyPem ? '<button class="mini-btn" data-pki-act="key" data-pki-id="' + UI.esc(e.id) + '">私钥</button>' : "") +
+          '<button class="mini-btn" data-pki-act="privhex" data-pki-id="' + UI.esc(e.id) + '" title="私钥 d，无前缀，P-256 32 B / P-384 48 B">私钥HEX</button>' +
+          '<button class="mini-btn" data-pki-act="pubhex" data-pki-id="' + UI.esc(e.id) + '" title="公钥 X‖Y，无前缀，P-256 64 B / P-384 96 B">公钥HEX</button>' +
+          '<button class="mini-btn" data-pki-act="der" data-pki-id="' + UI.esc(e.id) + '">DER</button>' +
+          '<button class="mini-btn" data-pki-act="download" data-pki-id="' + UI.esc(e.id) + '">下载</button>' +
+          "</div></td></tr>";
+      });
+      html += "</tbody></table></div></div>";
+    });
+    box.innerHTML = html;
+  }
+
+  function pkiUpdateMeta(report) {
+    if (!pkiBundle) {
+      $("#pki-badge").textContent = "等待生成";
+      $("#pki-badge").className = "badge";
+      $("#pki-summary").textContent = "生成后显示证书、链式校验与导入顺序。";
+      $("#pki-state").textContent = "还没有生成密钥包。";
+      return;
+    }
+    var entries = pkiBundle.entries;
+    var caCount = entries.filter(function (e) { return e.kind === "ca"; }).length;
+    var keyCount = entries.filter(function (e) { return !!e.keyPem; }).length;
+    var st = pkiBundle.profile && pkiBundle.profile.systemTitle ? pkiBundle.profile.systemTitle : "—";
+    $("#pki-state").textContent = "当前密钥包：" + entries.length + " 张证书 · " + caCount + " 张 CA · " +
+      keyCount + " 个私钥 · 客户端 ST " + st;
+    var ok = !!(report && report.ok);
+    $("#pki-badge").textContent = entries.length + " 张 · " + (ok ? "校验通过" : "校验失败");
+    $("#pki-badge").className = "badge" + (ok ? " badge-ok" : " badge-bad");
+
+    var suites = [];
+    entries.forEach(function (e) {
+      if (suites.indexOf(e.suite) < 0) suites.push(e.suite);
+    });
+    suites.sort();
+    var summary = suites.map(function (s) {
+      var list = entries.filter(function (e) { return e.suite === s; });
+      var sr = report ? report.entries.filter(function (x) { return x.suite === s; }) : [];
+      var suiteOk = sr.length > 0 && sr.every(function (x) { return x.ok; });
+      return "Suite " + s + " · " + PB.SUITES[s].curve + " · " + list.length + " 张 · " + (suiteOk ? "链式校验通过" : "校验失败");
+    });
+    $("#pki-summary").textContent = summary.join("；") + "。导入顺序：Root → 客户端签名 → 客户端协商。";
+  }
+
+  function pkiRenderImportReport(report) {
+    var box = $("#pki-import-report");
+    if (!report) { box.innerHTML = ""; return; }
+    var ok = !!report.ok;
+    var errors = (report.errors || []).slice();
+    var warnings = (report.warnings || []).slice();
+    var html = '<div class="status ' + (ok ? "ok" : "bad") + '"><span class="status-ico">' + (ok ? "✓" : "!") + "</span><div><strong>" +
+      (ok ? "密钥包校验通过" : "密钥包校验失败") + "</strong><small>" +
+      (report.entries || []).length + " 张证书" + (errors.length ? " · " + errors.length + " 个问题" : " · 私钥与证书匹配") +
+      "</small></div></div>";
+    if (errors.length || warnings.length) {
+      html += '<div class="pki-report ' + (ok ? "ok" : "bad") + '"><b>' + (ok ? "提示" : "未通过项") + "</b><ul>";
+      errors.slice(0, 12).forEach(function (m) { html += "<li>" + UI.esc(m) + "</li>"; });
+      warnings.slice(0, 8).forEach(function (m) { html += "<li>提示：" + UI.esc(m) + "</li>"; });
+      if (errors.length > 12) html += "<li>…还有 " + (errors.length - 12) + " 条</li>";
+      html += "</ul></div>";
+    }
+    box.innerHTML = html;
+  }
+
+  async function pkiExportJson() {
+    if (!pkiBundle) { toast("先生成或导入密钥包"); return; }
+    var pass = $("#pki-pass").value;
+    var text = await PB.serialize(pkiBundle, { passphrase: pass });
+    UI.download(PB.fileName(pkiBundle, pass ? "enc.json" : "json"), text);
+  }
+
+  function pkiExportZip() {
+    if (!pkiBundle) { toast("先生成或导入密钥包"); return; }
+    if ($("#pki-pass").value) {
+      var now = Date.now();
+      if (now > pkiZipConfirmUntil) {
+        pkiZipConfirmUntil = now + 4000;
+        toast("ZIP 里的 PEM / 私钥是明文，不受口令保护；4 秒内再点一次确认导出");
+        return;
+      }
+    }
+    UI.downloadBytes(PB.fileName(pkiBundle, "zip"), PB.buildZip(pkiBundle), "application/zip");
+  }
+
+  function pkiCopyImport() {
+    if (!pkiBundle) { toast("先生成或导入密钥包"); return; }
+    var suites = PB.bundleSuites(pkiBundle);
+    var text = suites.map(function (s) { return PB.buildMeterImportText(pkiBundle, s); }).join("\n\n");
+    UI.copyText(text);
+  }
+
+  async function pkiRun() {
+    var btn = $("#pki-run");
+    busy(btn, true);
+    try {
+      var st = PB.normalizeSystemTitle($("#pki-st").value);
+      var notBefore = pkiDateFromInput("#pki-notbefore", "起始日期");
+      var notAfter = pkiDateFromInput("#pki-notafter", "结束日期");
+      var bundle = await PB.generate({
+        systemTitle: st,
+        subject: { O: $("#pki-o").value.trim(), OU: $("#pki-ou").value.trim(), C: $("#pki-c").value.trim() },
+        suites: pkiSuiteSelection(),
+        caNameBase: $("#pki-ca-name").value.trim() || "Root_CA",
+        serials: pkiCollectSerials(),
+        notBefore: notBefore,
+        notAfter: notAfter
+      });
+      var report = await PB.validate(bundle);
+      pkiBundle = bundle;
+      pkiZipConfirmUntil = 0;
+      lastPkiReport = report;
+      pkiRenderList(report);
+      pkiUpdateMeta(report);
+      pkiAdoptCA();
+      syncIssuerOptions();
+      pkiRenderImportReport(null);
+      $("#pki-import-text").value = "";
+      toast("已生成 " + bundle.entries.length + " 张证书" + (report.ok ? "，校验通过" : "，校验未通过"));
+      if (pkiAutoDownload && report.ok) {
+        try { await pkiExportJson(); } catch (e2) { toast("密钥包下载失败：" + (e2.message || e2)); }
+      }
+    } catch (e) {
+      toast(e.message || String(e));
+    } finally {
+      busy(btn, false);
+    }
+  }
+
+  async function pkiImport() {
+    var text = $("#pki-import-text").value.trim();
+    if (!text) { toast("请粘贴密钥包 JSON，或选择文件"); return; }
+    var btn = $("#pki-import-run");
+    busy(btn, true);
+    try {
+      var bundle = await PB.parse(text, { passphrase: $("#pki-pass").value });
+      var report = await PB.validate(bundle);
+      pkiRenderImportReport(report);
+      if (!report.ok) { toast("校验未通过，未导入"); return; }
+      var mode = UI.activeButton($("#pki-import-mode")).getAttribute("data-import-mode");
+      if (mode === "merge" && pkiBundle) {
+        bundle = PB.merge(pkiBundle, bundle);
+        report = await PB.validate(bundle);
+        if (!report.ok) {
+          pkiRenderImportReport(report);
+          toast("合并后校验未通过，未导入");
+          return;
+        }
+      }
+      pkiBundle = bundle;
+      pkiZipConfirmUntil = 0;
+      lastPkiReport = report;
+      pkiRenderList(report);
+      pkiUpdateMeta(report);
+      pkiAdoptCA();
+      syncIssuerOptions();
+      toast("已恢复 " + bundle.entries.length + " 张证书");
+    } catch (e) {
+      pkiRenderImportReport({ ok: false, errors: [e.message || String(e)], warnings: [], entries: [] });
+      toast(e.message || String(e));
+    } finally {
+      busy(btn, false);
+    }
+  }
+
+  function pkiReset() {
+    pkiBundle = null;
+    lastPkiReport = null;
+    pkiZipConfirmUntil = 0;
+    pkiRenderList(null);
+    pkiUpdateMeta(null);
+    pkiRenderImportReport(null);
+    syncIssuerOptions();
+  }
+
+  function initPki() {
+    if (!$("#pki-run")) return;
+    $$("#pki-suites button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        UI.setSegment($("#pki-suites"), "data-suites", b.getAttribute("data-suites"));
+      });
+    });
+    $$("#pki-auto button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        pkiAutoDownload = b.getAttribute("data-auto") === "on";
+        UI.setSegment($("#pki-auto"), "data-auto", b.getAttribute("data-auto"));
+      });
+    });
+    $$("#pki-import-mode button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        UI.setSegment($("#pki-import-mode"), "data-import-mode", b.getAttribute("data-import-mode"));
+      });
+    });
+
+    $("#pki-run").addEventListener("click", pkiRun);
+    $("#pki-clear").addEventListener("click", function () {
+      pkiReset();
+      toast("已清空当前密钥包");
+    });
+    $("#pki-export-json").addEventListener("click", function () {
+      pkiExportJson().catch(function (e) { toast(e.message || String(e)); });
+    });
+    $("#pki-export-zip").addEventListener("click", function () {
+      try { pkiExportZip(); } catch (e) { toast(e.message || String(e)); }
+    });
+    $("#pki-copy-import").addEventListener("click", pkiCopyImport);
+    $("#pki-import-run").addEventListener("click", pkiImport);
+    $("#pki-pick-file").addEventListener("click", function () { $("#pki-import-file").click(); });
+    $("#pki-import-file").addEventListener("change", function () {
+      var file = this.files && this.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        $("#pki-import-text").value = String(reader.result || "");
+        toast("已读取 " + file.name);
+      };
+      reader.onerror = function () { toast("读取文件失败"); };
+      reader.readAsText(file, "utf-8");
+      this.value = "";
+    });
+    $("#pki-list").addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-pki-act]");
+      if (!btn) return;
+      var entry = pkiEntryById(btn.getAttribute("data-pki-id"));
+      if (!entry) return;
+      var act = btn.getAttribute("data-pki-act");
+      if (act === "pem") UI.copyText(pkiCertPem(entry));
+      else if (act === "key") {
+        if (entry.keyPem) UI.copyText(entry.keyPem);
+        else toast("该条目没有私钥");
+      } else if (act === "privhex") {
+        if (!entry.privateD) { toast("该条目没有私钥"); return; }
+        var priv = PB.privateHex(entry);
+        UI.copyText(priv, "私钥 d 已复制（" + (priv.length / 2) + " B，无前缀）");
+      } else if (act === "pubhex") {
+        try {
+          var pub = PB.publicHex(entry);
+          if (!pub) { toast("找不到公钥"); return; }
+          UI.copyText(pub, "公钥 X‖Y 已复制（" + (pub.length / 2) + " B，无前缀）");
+        } catch (e) {
+          toast("复制公钥失败：" + (e.message || e));
+        }
+      } else if (act === "der") UI.copyText(entry.certDerHex);
+      else if (act === "download") UI.download(pkiEntryBase(entry) + ".cert.pem", pkiCertPem(entry) + "\n");
+    });
+
+    pkiReset();
   }
 
   /* ============================================================
@@ -1757,13 +2140,13 @@
   function initKeyboard() {
     document.addEventListener("keydown", function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", certgen: "cg-run", parse: "parse-run" };
+        var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", certgen: "cg-run", pki: "pki-run", parse: "parse-run" };
         var id = map[currentView];
         if (id) { e.preventDefault(); var b = document.getElementById(id); if (b) b.click(); }
       }
     });
     $("#mobile-run").addEventListener("click", function () {
-      var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", certgen: "cg-run", parse: "parse-run" };
+      var map = { aes: "aes-run", gmac: "gmac-run", hls: "hls-run", keys: "kw-run", hash: "hash-run", sign: "sign-run", cert: "cert-parse", certgen: "cg-run", pki: "pki-run", parse: "parse-run" };
       var id = map[currentView];
       if (id) { var b = document.getElementById(id); if (b) b.click(); }
     });
@@ -1785,6 +2168,7 @@
   initSign();
   initCert();
   initCertgen();
+  initPki();
   initParse();
   initRegistry();
   initVectors();

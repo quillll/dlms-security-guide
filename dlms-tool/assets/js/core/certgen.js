@@ -313,6 +313,7 @@
     });
 
     out.privateKeyPem = keyPair.pkcs8Pem;
+    out.privateKey = keyPair.privateKey;
     out.privateKeyRaw = B.base64UrlToBytes(keyPair.privateJwk.d);
     out.publicKeyPem = X509.toPem(new Uint8Array(await global.crypto.subtle.exportKey("spki", keyPair.publicKey)), "PUBLIC KEY");
     out.publicRaw = keyPair.publicRaw;

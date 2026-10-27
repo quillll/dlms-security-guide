@@ -2813,6 +2813,11 @@ python assets\check-workspace.py</code></pre>
 </ol>
 
 <div class="callout">
+  <span class="label">实验室一次搭两套</span>
+  <p>打开 <a href="dlms-tool/index.html#pki">整套证书</a>，填一次客户端 System Title，勾选 Suite 1/2，点“一键生成整套”。默认有效期 <b>2000-01-01 → 2099-01-01</b>，O/C 留空；可在“高级”里分别指定 6 张证书的 serial。生成后导出 <code>.zip</code>，其中 <code>meter-import/suiteN.txt</code> 已按 Root → 终端的顺序排好 DER HEX；<code>.json</code> 密钥包可在刷新后恢复。</p>
+</div>
+
+<div class="callout">
   <span class="label">证书里的公钥包装</span>
   <p>证书的 <code>subjectPublicKeyInfo</code> 里是未压缩点 <code>04‖X‖Y</code>（P-256 65 B，P-384 97 B）。把它拿去拼 DLMS 的 <code>key_agreement.key_data</code> 时，<b>要去掉 <code>04</code></b>，只留裸 <code>X‖Y</code>（64/96 B）。多一个字节，后面全部错位。</p>
 </div>

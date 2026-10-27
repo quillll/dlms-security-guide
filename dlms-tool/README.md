@@ -26,6 +26,7 @@ python -m http.server 8765 --bind 127.0.0.1
 | 数字签名 | ECDSA P-256/P-384；raw `R‖S` ↔ DER；PKCS#8 / JWK / 原始私钥 d；消息支持 ASCII / HEX 两种输入 | 可用 |
 | 证书 | X.509 解析、验签、链式校验、公钥提取（X‖Y / 04‖X‖Y / SPKI / JWK） | 可用 |
 | 证书签发 | 生成 Root-CA / Sub-CA / 终端签名 / 密钥协商 / TLS 证书；解析并签发 PKCS#10 CSR（私钥不出设备） | 可用 |
+| 整套证书 | 一次生成 Suite 1/2 的 CA + 客户端签名 + 客户端协商证书；分别指定 serial；清单可直接复制私钥 d / 公钥 X‖Y 裸 HEX；导出可恢复的 JSON 密钥包与带「电表导入清单」的 ZIP；从文件/粘贴恢复（含私钥） | 可用 |
 | 报文解析 | HDLC / wrapper / 原始 APDU；FCS 校验；SC/IC/密文/tag 字段拆分；可选内联解密 | 可用 |
 | 算法总览 | 算法注册表与规范出处；规划中入口灰显 | 可用 |
 | 测试向量 | Table 48 / 51 / 52、Annex C.1、AES-KW、CRC、SHA/MD5、证书链 | 可用（13/13） |
@@ -46,7 +47,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ```bash
 node tests/run-tests.js
-# 期望：48 passed, 0 failed
+# 期望：64 passed, 0 failed
 ```
 
 浏览器 UI 冒烟（需要本地 HTTP 服务 + 带远程调试端口的 Edge）：
@@ -62,7 +63,7 @@ python -m http.server 8765 --bind 127.0.0.1
 
 # 终端 3
 node tests/ui-smoke.js
-# 期望：21 passed, 0 failed
+# 期望：22 passed, 0 failed
 ```
 
 也可以打开页面里的「测试向量」→「全部运行」，在浏览器内跑 13 条规范向量。
@@ -77,12 +78,12 @@ dlms-tool/
 ├─ assets/
 │  ├─ css/app.css
 │  └─ js/
-│     ├─ core/                 # bytes / gcm / hash / aes-kw / kdf / ec / x509 / certgen / crc / dlms
+│     ├─ core/                 # bytes / gcm / hash / aes-kw / kdf / ec / x509 / certgen / pkibundle / crc / dlms
 │     ├─ ui/                   # components.js / app.js
 │     └─ vectors.js            # 规范向量 + 示例证书链
 ├─ tests/
-│  ├─ run-tests.js             # 核心算法 48 项
-│  ├─ ui-smoke.js              # UI 冒烟 21 项（CDP）
+│  ├─ run-tests.js             # 核心算法 64 项
+│  ├─ ui-smoke.js              # UI 冒烟 22 项（CDP）
 │  ├─ screenshots.js           # 评审截图脚本（可选）
 │  └─ fixtures/                # OpenSSL 生成的测试证书
 ├─ DESIGN.md                   # 算法调研、UI 方案、技术决策与验收
@@ -94,6 +95,7 @@ dlms-tool/
 
 - 这是**诊断 / 教学工具**，不是生产密码机；没有侧信道防护、密钥生命周期管理或 HSM 集成。
 - 所有计算在浏览器本地完成；没有网络请求，密钥不写入 `localStorage` / `sessionStorage`。
+- 「整套证书」导出的 `.json` / `.zip` **包含私钥**，只用于实验室测试；文件里已标 `TEST ONLY`，不要提交到仓库或用于生产。
 - 示例密钥与证书来自公开规范或测试夹具；**不要用于生产**。
 - 证书页只做密码学校验（签名、有效期、keyUsage、链式签名），**不做信任锚、CRL、OCSP**。
 - `file://` 下 WebCrypto 在部分浏览器可能受限；如遇问题，用本地 HTTP 服务打开。

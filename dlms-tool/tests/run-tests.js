@@ -13,6 +13,7 @@ require("../assets/js/core/crc.js");
 require("../assets/js/core/ec.js");
 require("../assets/js/core/x509.js");
 require("../assets/js/core/certgen.js");
+require("../assets/js/core/pkibundle.js");
 require("../assets/js/core/dlms.js");
 
 const fs = require("fs");
@@ -26,6 +27,7 @@ const CRC = global.DLMS.CRC;
 const EC = global.DLMS.EC;
 const X509 = global.DLMS.X509;
 const CG = global.DLMS.CertGen;
+const PB = global.DLMS.PKIBundle;
 const D = global.DLMS.DLMS;
 
 let passed = 0;
@@ -47,6 +49,40 @@ function hex(s) { return B.hexToBytes(s); }
 function eqHex(actual, expected, label) {
   const a = B.bytesToHexCompact(actual);
   assert.strictEqual(a, expected.replace(/\s/g, "").toUpperCase(), label || "hex mismatch");
+}
+
+function unzipStore(bytes) {
+  const buf = Buffer.from(bytes);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= 0; i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  assert.ok(eocd >= 0, "ZIP 缺少 EOCD");
+  const count = buf.readUInt16LE(eocd + 10);
+  let off = buf.readUInt32LE(eocd + 16);
+  const out = {};
+  for (let i = 0; i < count; i++) {
+    assert.strictEqual(buf.readUInt32LE(off), 0x02014b50, "中央目录签名");
+    const method = buf.readUInt16LE(off + 10);
+    const crc = buf.readUInt32LE(off + 16);
+    const csize = buf.readUInt32LE(off + 20);
+    const usize = buf.readUInt32LE(off + 24);
+    const nlen = buf.readUInt16LE(off + 28);
+    const elen = buf.readUInt16LE(off + 30);
+    const clen = buf.readUInt16LE(off + 32);
+    const lho = buf.readUInt32LE(off + 42);
+    const name = buf.slice(off + 46, off + 46 + nlen).toString("utf8");
+    assert.strictEqual(method, 0, name + " 应为 store");
+    assert.strictEqual(csize, usize, name + " 压缩/原始长度");
+    const lnlen = buf.readUInt16LE(lho + 26);
+    const lelen = buf.readUInt16LE(lho + 28);
+    const start = lho + 30 + lnlen + lelen;
+    const data = buf.slice(start, start + usize);
+    assert.strictEqual(CRC.crc32(CRC.CRC32["ISO-HDLC"], data) >>> 0, crc, name + " CRC32");
+    out[name] = data;
+    off += 46 + nlen + elen + clen;
+  }
+  return out;
 }
 
 (async function main() {
@@ -530,6 +566,202 @@ function eqHex(actual, expected, label) {
     assert.strictEqual(r.bytes[iss.offset + 1], 0x81);
     assert.strictEqual(r.bytes[iss.offset + 2], longIssuer.length);
     assert.strictEqual(r.bytes.length, iss.offset + iss.length);
+  });
+
+  console.log("testpki（整套证书 / 密钥包）");
+  let pkiTestBundle = null;
+  await test("整套生成：2 套件 6 张，角色 / 曲线 / 用途正确", async () => {
+    pkiTestBundle = await PB.generate({
+      systemTitle: "4D4D4D0000BC614E",
+      subject: { O: "DLMS UA", OU: "Metering", C: "CH" },
+      suites: [1, 2],
+      validityDays: 365
+    });
+    assert.strictEqual(pkiTestBundle.entries.length, 6);
+    assert.deepStrictEqual(pkiTestBundle.entries.map(e => e.kind), [
+      "ca", "client-sign", "client-key-agreement",
+      "ca", "client-sign", "client-key-agreement"
+    ]);
+    const s1 = pkiTestBundle.entries.filter(e => e.suite === 1);
+    const s2 = pkiTestBundle.entries.filter(e => e.suite === 2);
+    assert.strictEqual(s1[0].curve, "P-256");
+    assert.strictEqual(s2[0].curve, "P-384");
+    assert.deepStrictEqual(s1[1].keyUsage, ["digitalSignature"]);
+    assert.deepStrictEqual(s1[2].keyUsage, ["keyAgreement"]);
+    assert.strictEqual(s1[1].cn, "4D4D4D0000BC614E");
+    assert.strictEqual(s2[1].cn, "4D4D4D0000BC614E");
+    assert.ok(s1[1].privateD !== s1[2].privateD, "签名与协商不能共用私钥");
+    assert.strictEqual(s1[0].cn, "Root_CA_S1");
+    assert.strictEqual(s2[0].cn, "Root_CA_S2");
+  });
+
+  await test("整套生成：链式验签与全量校验通过", async () => {
+    const report = await PB.validate(pkiTestBundle);
+    assert.strictEqual(report.ok, true, report.errors.join("\n"));
+    assert.strictEqual(report.entries.length, 6);
+    for (const s of [1, 2]) {
+      const ca = pkiTestBundle.entries.find(e => e.suite === s && e.kind === "ca");
+      const caCert = X509.parseCertificate(B.hexToBytes(ca.certDerHex));
+      for (const kind of ["client-sign", "client-key-agreement"]) {
+        const leaf = pkiTestBundle.entries.find(e => e.suite === s && e.kind === kind);
+        const leafCert = X509.parseCertificate(B.hexToBytes(leaf.certDerHex));
+        const v = await X509.verifyCertificate(leafCert, caCert);
+        assert.strictEqual(v.ok, true, v.reason);
+        assert.strictEqual(leaf.aki, ca.ski);
+      }
+    }
+  });
+
+  await test("整套生成：私钥 d 与证书公钥一致", async () => {
+    for (const e of pkiTestBundle.entries) {
+      const cert = X509.parseCertificate(B.hexToBytes(e.certDerHex));
+      const pub = EC.derivePublicKey(B.hexToBytes(e.privateD), e.curve);
+      const xy = B.concat(pub.x, pub.y);
+      let certPub = cert.spki.publicKeyBytes;
+      if (certPub.length === xy.length + 1 && certPub[0] === 0x04) certPub = certPub.slice(1);
+      assert.ok(B.bytesEqual(xy, certPub), e.id + " 私钥与证书不匹配");
+    }
+  });
+
+  await test("密钥 HEX：私钥 32/48 B、公钥 64/96 B（无前缀）", async () => {
+    for (const e of pkiTestBundle.entries) {
+      const d = PB.privateHex(e);
+      const q = PB.publicHex(e);
+      assert.strictEqual(d.length, e.curve === "P-384" ? 96 : 64, e.id + " 私钥长度");
+      assert.strictEqual(q.length, e.curve === "P-384" ? 192 : 128, e.id + " 公钥长度");
+      assert.strictEqual(d, e.privateD.toUpperCase());
+      assert.strictEqual(q, e.publicXY.toUpperCase());
+    }
+    const noXY = JSON.parse(JSON.stringify(pkiTestBundle.entries[1]));
+    delete noXY.publicXY;
+    assert.strictEqual(PB.publicHex(noXY), pkiTestBundle.entries[1].publicXY);
+  });
+
+  await test("密钥包：明文 JSON 往返保持证书与私钥", async () => {
+    const text = await PB.serialize(pkiTestBundle, {});
+    assert.ok(text.indexOf('"privateD"') >= 0);
+    const back = await PB.parse(text, {});
+    const report = await PB.validate(back);
+    assert.strictEqual(report.ok, true, report.errors.join("\n"));
+    assert.strictEqual(back.entries.length, 6);
+    assert.strictEqual(back.entries[0].certDerHex, pkiTestBundle.entries[0].certDerHex);
+    assert.strictEqual(back.entries[0].privateD, pkiTestBundle.entries[0].privateD);
+    assert.strictEqual(back.profile.systemTitle, "4D4D4D0000BC614E");
+    const withBom = await PB.parse("\uFEFF" + text, {});
+    assert.strictEqual(withBom.entries.length, 6, "应容忍 UTF-8 BOM");
+  });
+
+  await test("密钥包：口令加密往返 + 错口令拒绝", async () => {
+    const text = await PB.serialize(pkiTestBundle, { passphrase: "unit-test-pass" });
+    const envelope = JSON.parse(text);
+    assert.strictEqual(envelope.encrypted, true);
+    assert.ok(envelope.payload.length > 1000);
+    const back = await PB.parse(text, { passphrase: "unit-test-pass" });
+    assert.strictEqual(back.entries.length, 6);
+    assert.strictEqual(back.entries[5].privateD, pkiTestBundle.entries[5].privateD);
+    await assert.rejects(() => PB.parse(text, { passphrase: "wrong-pass" }), /口令错误/);
+  });
+
+  await test("密钥包：KDF 迭代次数上限保护", async () => {
+    const text = await PB.serialize(pkiTestBundle, { passphrase: "unit-test-pass" });
+    const env = JSON.parse(text);
+    env.kdf.iterations = 1000000000;
+    await assert.rejects(
+      () => PB.parse(JSON.stringify(env), { passphrase: "unit-test-pass" }),
+      /迭代次数/
+    );
+  });
+
+  await test("密钥包：篡改私钥与证书都会被拒绝", async () => {
+    const badKey = JSON.parse(JSON.stringify(pkiTestBundle));
+    const leaf = badKey.entries.find(e => e.kind === "client-sign");
+    leaf.privateD = (leaf.privateD[0] === "1" ? "2" : "1") + leaf.privateD.slice(1);
+    const r1 = await PB.validate(badKey);
+    assert.strictEqual(r1.ok, false);
+    assert.ok(r1.errors.some(m => /私钥 d 推导出的公钥/.test(m)), r1.errors.join("\n"));
+
+    const badCert = JSON.parse(JSON.stringify(pkiTestBundle));
+    const target = badCert.entries.find(e => e.kind === "client-key-agreement");
+    target.certDerHex = target.certDerHex.slice(0, -2) + (target.certDerHex.slice(-2) === "00" ? "01" : "00");
+    const r2 = await PB.validate(badCert);
+    assert.strictEqual(r2.ok, false);
+    assert.ok(r2.errors.some(m => /certPem 与 certDerHex 不一致/.test(m)), r2.errors.join("\n"));
+
+    const noDer = JSON.parse(JSON.stringify(pkiTestBundle));
+    delete noDer.entries[0].certDerHex;
+    const r3 = await PB.validate(noDer);
+    assert.strictEqual(r3.ok, false);
+    assert.ok(r3.errors.some(m => /certDerHex/.test(m)), r3.errors.join("\n"));
+  });
+
+  await test("校验：用途与 kind 不符会被拒绝", async () => {
+    const bad = JSON.parse(JSON.stringify(pkiTestBundle));
+    const leaf = bad.entries.find(e => e.kind === "client-sign");
+    leaf.kind = "client-key-agreement";
+    const report = await PB.validate(bad);
+    assert.strictEqual(report.ok, false);
+    assert.ok(report.errors.some(m => /keyUsage/.test(m)), report.errors.join("\n"));
+  });
+
+  await test("ZIP：目录、store 模式与 CRC32 正确", async () => {
+    const files = unzipStore(PB.buildZip(pkiTestBundle));
+    assert.ok(files["README.txt"], "缺 README.txt");
+    assert.ok(files["manifest.json"], "缺 manifest.json");
+    assert.ok(files["suite1/01-root-ca.cert.pem"], "缺 Suite 1 CA 证书");
+    assert.ok(files["suite1/02-client-sign.key.pem"].toString("utf8").indexOf("BEGIN PRIVATE KEY") >= 0);
+    assert.ok(files["suite2/03-client-key-agreement.cert.der.hex"].toString("utf8").length > 100);
+    const ca = pkiTestBundle.entries.find(e => e.suite === 1 && e.kind === "ca");
+    assert.strictEqual(files["suite1/01-root-ca.cert.der.hex"].toString("utf8").trim(), ca.certDerHex);
+    assert.ok(files["meter-import/suite1.txt"].toString("utf8").indexOf("import_certificate") >= 0);
+  });
+
+  await test("电表导入清单：Root 在前的纯 HEX 顺序", async () => {
+    const text = PB.buildMeterImportText(pkiTestBundle, 1);
+    const pure = text.split("===== 纯 HEX")[1].split("\n").map(s => s.trim()).filter(s => /^[0-9A-F]+$/i.test(s));
+    const s1 = pkiTestBundle.entries.filter(e => e.suite === 1);
+    assert.strictEqual(pure.length, 3);
+    assert.deepStrictEqual(pure, s1.map(e => e.certDerHex));
+  });
+
+  await test("默认有效期 2000-01-01 → 2099-01-01，序列号可分别指定", async () => {
+    const b = await PB.generate({
+      systemTitle: "4D4D4D0000BC614E",
+      suites: [1],
+      serials: {
+        "s1-ca": "0x0102",
+        "s1-client-sign": "7",
+        "s1-client-key-agreement": "ABCDEF"
+      }
+    });
+    assert.strictEqual(b.entries.length, 3);
+    assert.strictEqual(b.entries[0].notBefore, "2000-01-01T00:00:00Z");
+    assert.strictEqual(b.entries[0].notAfter, "2099-01-01T00:00:00Z");
+    assert.strictEqual(b.entries[0].serial, "0102");
+    assert.strictEqual(b.entries[1].serial, "07");
+    assert.strictEqual(b.entries[2].serial, "ABCDEF");
+    assert.strictEqual(b.profile.subject.O, "");
+    assert.strictEqual(b.profile.subject.C, "");
+    assert.throws(() => PB.parseSerial("0"), /正整数/);
+    assert.throws(() => PB.parseSerial("-1"), /正整数/);
+    assert.throws(() => PB.parseSerial("0x"), /十六进制/);
+    await assert.rejects(
+      () => PB.generate({ systemTitle: "4D4D4D0000BC614E", suites: [] }),
+      /至少选择/
+    );
+  });
+
+  await test("合并：同 id 覆盖、不同 System Title 拒绝", async () => {
+    const other = await PB.generate({ systemTitle: "4D4D4D0000BC614E", suites: [1], validityDays: 30 });
+    const merged = PB.merge(pkiTestBundle, other);
+    assert.strictEqual(merged.entries.length, 6);
+    assert.strictEqual(merged.entries.filter(e => e.suite === 1).length, 3);
+    assert.strictEqual(merged.profile.validityDays, 30);
+    assert.deepStrictEqual(merged.profile.suites, [1, 2]);
+    const mergedFiles = unzipStore(PB.buildZip(merged));
+    assert.ok(mergedFiles["meter-import/suite2.txt"], "合并后应保留 Suite 2 的导入清单");
+    const fake = JSON.parse(JSON.stringify(pkiTestBundle));
+    fake.profile.systemTitle = "0000000000000001";
+    assert.throws(() => PB.merge(pkiTestBundle, fake), /System Title/);
   });
 
   console.log("");

@@ -291,6 +291,51 @@ function norm(s) { return String(s || "").replace(/\s+/g, "").toUpperCase(); }
     assert.ok(t.indexOf("复制 X‖Y") < 0, "不应显示 EC 专用按钮");
   });
 
+  await check("整套证书 · 默认值 / 生成 / 清空 / 口令包恢复", async () => {
+    await evaluate("document.querySelector('.nav-item[data-view=\"pki\"]').click()");
+    assert.strictEqual(await evaluate("document.getElementById('pki-notbefore').value"), "2000-01-01");
+    assert.strictEqual(await evaluate("document.getElementById('pki-notafter').value"), "2099-01-01");
+    assert.strictEqual(await evaluate("document.getElementById('pki-o').value"), "");
+    assert.strictEqual(await evaluate("document.getElementById('pki-c').value"), "");
+    await evaluate("document.querySelector('#pki-auto button[data-auto=\"off\"]').click()");
+    await evaluate("document.getElementById('pki-serial-s1-ca').value='0x0102'; document.getElementById('pki-serial-s1-client-sign').value='7'; document.getElementById('pki-serial-s1-client-key-agreement').value='ABCDEF'");
+    await evaluate("document.getElementById('pki-run').click()");
+    await sleep(3200);
+    let t = await evaluate("document.getElementById('pki-state').innerText");
+    assert.ok(t.indexOf("6 张证书") >= 0, t);
+    assert.strictEqual(await evaluate("document.querySelectorAll('#pki-list tbody tr').length"), 6);
+    assert.strictEqual(await evaluate("document.querySelectorAll('#pki-list [data-pki-act=\"privhex\"]').length"), 6);
+    assert.strictEqual(await evaluate("document.querySelectorAll('#pki-list [data-pki-act=\"pubhex\"]').length"), 6);
+    await evaluate("window.__pkiClip=null; Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:function(t){window.__pkiClip=t;return Promise.resolve();}}})");
+    await evaluate("document.querySelector('#pki-list [data-pki-act=\"privhex\"]').click()");
+    await sleep(150);
+    const privHex = await evaluate("window.__pkiClip");
+    assert.strictEqual(privHex.length, 64, "P-256 私钥应为 32 B / 64 HEX");
+    assert.ok(/^[0-9A-F]+$/.test(privHex), privHex);
+    await evaluate("document.querySelector('#pki-list [data-pki-act=\"pubhex\"]').click()");
+    await sleep(150);
+    const pubHex = await evaluate("window.__pkiClip");
+    assert.strictEqual(pubHex.length, 128, "P-256 公钥应为 64 B / 128 HEX");
+    assert.ok(/^[0-9A-F]+$/.test(pubHex), pubHex);
+    const rows = await evaluate("[...document.querySelectorAll('#pki-list tbody tr')].map(tr=>tr.innerText).join('\\n')");
+    assert.ok(rows.indexOf("0102") >= 0, rows.slice(0, 500));
+    assert.strictEqual(await evaluate("document.getElementById('pki-export-zip').disabled"), false);
+
+    const encText = await evaluate(`(async()=>{
+      var b = await DLMS.PKIBundle.generate({systemTitle:'4D4D4D0000BC614E', suites:[1,2]});
+      return await DLMS.PKIBundle.serialize(b, {passphrase:'ui-test'});
+    })()`);
+    await evaluate("document.getElementById('pki-clear').click()");
+    await sleep(150);
+    assert.strictEqual(await evaluate("document.querySelectorAll('#pki-list tbody tr').length"), 0);
+    await evaluate("document.getElementById('pki-pass').value='ui-test'");
+    await evaluate("document.getElementById('pki-import-text').value=" + JSON.stringify(encText) + "; document.getElementById('pki-import-run').click()");
+    await sleep(4200);
+    t = await evaluate("document.getElementById('pki-import-report').innerText");
+    assert.ok(t.indexOf("密钥包校验通过") >= 0, t.slice(0, 500));
+    assert.strictEqual(await evaluate("document.querySelectorAll('#pki-list tbody tr').length"), 6);
+  });
+
   await check("测试向量 · 全部运行", async () => {
     await evaluate("document.getElementById('vectors-run-all').click()");
     await sleep(5000);

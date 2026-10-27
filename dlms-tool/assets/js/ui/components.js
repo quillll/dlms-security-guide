@@ -27,15 +27,16 @@
     toastTimer = setTimeout(function () { el.classList.remove("show"); }, 2800);
   }
 
-  function copyText(text) {
+  function copyText(text, label) {
+    var message = label || "已复制到剪贴板";
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text).then(function () { toast("已复制到剪贴板"); }, function () { toast("浏览器拒绝了剪贴板访问"); });
+      return navigator.clipboard.writeText(text).then(function () { toast(message); }, function () { toast("浏览器拒绝了剪贴板访问"); });
     }
     var ta = document.createElement("textarea");
     ta.value = text;
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand("copy"); toast("已复制到剪贴板"); }
+    try { document.execCommand("copy"); toast(message); }
     catch (e) { toast("复制失败"); }
     document.body.removeChild(ta);
     return Promise.resolve();
@@ -43,6 +44,17 @@
 
   function download(filename, text) {
     var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    toast("已开始下载 " + filename);
+  }
+
+  function downloadBytes(filename, bytes, mime) {
+    var blob = new Blob([bytes], { type: mime || "application/octet-stream" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;
@@ -418,7 +430,7 @@
   }
 
   DLMS.UI = {
-    $: $, $$: $$, esc: esc, toast: toast, copyText: copyText, download: download,
+    $: $, $$: $$, esc: esc, toast: toast, copyText: copyText, download: download, downloadBytes: downloadBytes,
     activeButton: activeButton, setSegment: setSegment,
     hex: hex, hexCompact: hexCompact, shortHex: shortHex,
     formatBytesInput: formatBytesInput, bytesFromInput: bytesFromInput,
